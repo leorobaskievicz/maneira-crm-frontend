@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard, Users, Calendar, FileText, DollarSign,
-  Package, UserPlus, Settings, Sparkles, ChevronLeft, ChevronRight, LogOut
+  Package, UserPlus, Settings, Sparkles, ChevronLeft, ChevronRight, LogOut, Megaphone
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -16,6 +16,7 @@ const navItems = [
   { href: '/financeiro', icon: DollarSign, label: 'Financeiro' },
   { href: '/estoque', icon: Package, label: 'Estoque' },
   { href: '/leads', icon: UserPlus, label: 'Leads' },
+  { href: '/campanhas', icon: Megaphone, label: 'Campanhas' },
   { href: '/configuracoes', icon: Settings, label: 'Configurações' },
 ];
 

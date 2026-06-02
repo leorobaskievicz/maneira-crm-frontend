@@ -2,14 +2,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Users, Calendar, DollarSign, Package, UserPlus } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, DollarSign, Megaphone } from 'lucide-react';
 
 const navItems = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Início' },
   { href: '/pacientes', icon: Users, label: 'Pacientes' },
   { href: '/agenda', icon: Calendar, label: 'Agenda' },
   { href: '/financeiro', icon: DollarSign, label: 'Financeiro' },
-  { href: '/leads', icon: UserPlus, label: 'Leads' },
+  { href: '/campanhas', icon: Megaphone, label: 'Campanhas' },
 ];
 
 export function BottomNav() {
