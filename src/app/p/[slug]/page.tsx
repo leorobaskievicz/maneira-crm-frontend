@@ -2,10 +2,13 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Sparkles, CheckCircle, Phone, MapPin, Clock } from 'lucide-react';
+import { Box, Typography, TextField, Button, CircularProgress, Chip } from '@mui/material';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlined';
+import WhatsAppIcon from '@mui/icons-material/WhatsApp';
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
+import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
+import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { toast } from 'sonner';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -16,130 +19,146 @@ export default function LandingPage() {
   const [campaign, setCampaign] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [formData, setFormData] = useState({ name: '', phone: '', procedureInterest: '' });
+  const [form, setForm] = useState({ name: '', phone: '', procedureInterest: '' });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
-    axios.get(`${API}/public/campaigns/${slug}`)
-      .then(r => setCampaign(r.data))
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
+    axios.get(`${API}/public/campaigns/${slug}`).then(r => setCampaign(r.data)).catch(() => setNotFound(true)).finally(() => setLoading(false));
   }, [slug]);
 
+  const trackClick = () => axios.post(`${API}/public/campaigns/${slug}/click`).catch(() => {});
+
   const handleWhatsApp = async () => {
-    await axios.post(`${API}/public/campaigns/${slug}/click`).catch(() => {});
-    const msg = encodeURIComponent(`Olá! Vi a campanha "${campaign.title}" e gostaria de saber mais sobre ${formData.procedureInterest || campaign.procedures?.[0] || 'os procedimentos'}.`);
+    await trackClick();
+    const msg = encodeURIComponent(`Olá! Vi a campanha "${campaign.title}" e gostaria de saber mais sobre ${form.procedureInterest || campaign.procedures?.[0] || 'os procedimentos'}.${form.name ? ` Meu nome é ${form.name}.` : ''}`);
     window.open(`https://wa.me/55${campaign.whatsappNumber}?text=${msg}`, '_blank');
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone) { toast.error('Preencha nome e telefone'); return; }
+    if (!form.name || !form.phone) { toast.error('Preencha nome e telefone'); return; }
     setSubmitting(true);
     try {
-      await axios.post(`${API}/leads`, {
-        name: formData.name, phone: formData.phone,
-        procedureInterest: formData.procedureInterest || campaign.procedures?.[0] || '',
-        source: 'google', notes: `Campanha: ${campaign.title}`,
-      });
-      await axios.post(`${API}/public/campaigns/${slug}/click`).catch(() => {});
+      await axios.post(`${API}/leads`, { name: form.name, phone: form.phone, procedureInterest: form.procedureInterest || campaign.procedures?.[0] || '', source: 'google', notes: `Campanha: ${campaign.title}` });
+      await trackClick();
       setSubmitted(true);
     } catch { toast.error('Erro ao enviar. Tente pelo WhatsApp.'); }
     finally { setSubmitting(false); }
   };
 
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#111' }}>
-      <div className="w-8 h-8 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-    </div>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f0f0f' }}>
+      <CircularProgress sx={{ color: '#A0585A' }} />
+    </Box>
   );
 
   if (notFound) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: '#111' }}>
-      <div className="text-center text-white">
-        <p className="text-2xl font-bold">Página não encontrada</p>
-        <p className="text-white/50 mt-2">Esta campanha não existe ou foi desativada.</p>
-      </div>
-    </div>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0f0f0f', textAlign: 'center' }}>
+      <Box>
+        <Typography sx={{ color: '#fff', fontSize: '1.5rem', fontWeight: 700 }}>Página não encontrada</Typography>
+        <Typography sx={{ color: 'rgba(255,255,255,0.4)', mt: 1 }}>Esta campanha não existe ou foi desativada.</Typography>
+      </Box>
+    </Box>
   );
 
   const color = campaign.primaryColor || '#A0585A';
 
   return (
-    <div className="min-h-screen" style={{ background: '#0f0f0f' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#0f0f0f' }}>
       {/* Hero */}
-      <div className="px-6 pt-12 pb-8 text-center" style={{ background: `linear-gradient(135deg, ${color}ee, ${color}88)` }}>
-        <div className="w-12 h-12 rounded-2xl mx-auto mb-4 flex items-center justify-center bg-white/20">
-          <Sparkles className="w-6 h-6 text-white" />
-        </div>
-        <p className="text-white/60 text-xs uppercase tracking-widest mb-2">Clínica Caroline Maneira</p>
-        <h1 className="text-white text-3xl font-bold leading-tight mb-3">{campaign.title}</h1>
-        {campaign.subtitle && <p className="text-white/80 text-base">{campaign.subtitle}</p>}
-      </div>
+      <Box sx={{ px: 3, pt: 6, pb: 5, textAlign: 'center', background: `linear-gradient(160deg, ${color}DD, ${color}77)` }}>
+        <Box sx={{ width: 48, height: 48, borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
+          <AutoAwesomeOutlinedIcon sx={{ color: '#fff', fontSize: 22 }} />
+        </Box>
+        <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.12em', mb: 1 }}>
+          Clínica Caroline Maneira
+        </Typography>
+        <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: { xs: '1.75rem', sm: '2.2rem' }, lineHeight: 1.2, mb: 1.5 }}>
+          {campaign.title}
+        </Typography>
+        {campaign.subtitle && (
+          <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '1rem', maxWidth: 460, mx: 'auto' }}>
+            {campaign.subtitle}
+          </Typography>
+        )}
+      </Box>
 
-      <div className="max-w-md mx-auto px-6 py-8 space-y-6">
+      <Box sx={{ maxWidth: 480, mx: 'auto', px: 3, py: 4 }}>
         {/* Procedimentos */}
         {campaign.procedures?.length > 0 && (
-          <div className="space-y-2">
-            <p className="text-white/50 text-xs uppercase tracking-wider">Procedimentos</p>
-            {campaign.procedures.map((p: string) => (
-              <div key={p} className="flex items-center gap-3 py-2.5 px-4 rounded-xl" style={{ background: '#1a1a1a' }}>
-                <CheckCircle className="w-4 h-4 flex-shrink-0" style={{ color }} />
-                <span className="text-white text-sm">{p}</span>
-              </div>
-            ))}
-          </div>
+          <Box sx={{ mb: 4 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 1.5 }}>
+              Procedimentos
+            </Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
+              {campaign.procedures.map((p: string) => (
+                <Box key={p} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1.5, px: 2, borderRadius: '4px', backgroundColor: '#1a1a1a', border: '1px solid #2a2a2a' }}>
+                  <CheckCircleOutlineIcon sx={{ fontSize: 16, color, flexShrink: 0 }} />
+                  <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: '0.9rem' }}>{p}</Typography>
+                </Box>
+              ))}
+            </Box>
+          </Box>
         )}
 
         {/* CTA */}
         {submitted ? (
-          <div className="text-center py-8 space-y-3">
-            <CheckCircle className="w-14 h-14 mx-auto" style={{ color }} />
-            <h2 className="text-white text-xl font-bold">Recebemos seu contato!</h2>
-            <p className="text-white/60 text-sm">Em breve a Dra. Caroline entrará em contato.</p>
-            <Button onClick={handleWhatsApp} className="w-full text-white font-bold py-3" style={{ background: '#25D366' }}>
-              💬 Falar pelo WhatsApp agora
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <CheckCircleOutlineIcon sx={{ fontSize: 52, color, mb: 2 }} />
+            <Typography sx={{ color: '#fff', fontSize: '1.3rem', fontWeight: 700, mb: 1 }}>Recebemos seu contato!</Typography>
+            <Typography sx={{ color: 'rgba(255,255,255,0.5)', mb: 3 }}>A Dra. Caroline entrará em contato em breve.</Typography>
+            <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={handleWhatsApp}
+              sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.5, fontSize: '1rem', fontWeight: 700 }}>
+              Falar pelo WhatsApp agora
             </Button>
-          </div>
+          </Box>
         ) : campaign.ctaType === 'whatsapp' ? (
-          <div className="space-y-3">
-            <Input placeholder="Seu nome" value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12" />
-            <Input placeholder="Seu telefone" value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12" />
-            <Button onClick={handleWhatsApp} className="w-full text-white font-bold py-6 text-base"
-              style={{ background: '#25D366' }}>
-              💬 {campaign.ctaText || 'Agendar pelo WhatsApp'}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <TextField placeholder="Seu nome" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              fullWidth sx={{ '& .MuiOutlinedInput-root': { backgroundColor: '#1a1a1a', '& fieldset': { borderColor: '#2a2a2a' }, '&:hover fieldset': { borderColor: color }, input: { color: '#fff' } } }} />
+            <TextField placeholder="Seu telefone" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              fullWidth sx={{ '& .MuiOutlinedInput-root': { backgroundColor: '#1a1a1a', '& fieldset': { borderColor: '#2a2a2a' }, '&:hover fieldset': { borderColor: color }, input: { color: '#fff' } } }} />
+            <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={handleWhatsApp}
+              sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.75, fontSize: '1rem', fontWeight: 700, mt: 0.5 }}>
+              {campaign.ctaText || 'Agendar pelo WhatsApp'}
             </Button>
-          </div>
+          </Box>
         ) : (
-          <form onSubmit={handleFormSubmit} className="space-y-3">
-            <Input placeholder="Seu nome *" value={formData.name} onChange={e => setFormData(f => ({ ...f, name: e.target.value }))}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12" />
-            <Input placeholder="Seu telefone *" value={formData.phone} onChange={e => setFormData(f => ({ ...f, phone: e.target.value }))}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12" />
-            <Input placeholder="Qual procedimento te interessa?" value={formData.procedureInterest}
-              onChange={e => setFormData(f => ({ ...f, procedureInterest: e.target.value }))}
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/40 h-12" />
-            <Button type="submit" disabled={submitting} className="w-full text-white font-bold py-6 text-base" style={{ background: color }}>
-              {submitting ? 'Enviando...' : campaign.ctaText || 'Quero agendar!'}
-            </Button>
+          <form onSubmit={handleSubmit}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              {['Seu nome', 'Seu telefone', 'Procedimento de interesse'].map((placeholder, i) => (
+                <TextField key={i} placeholder={placeholder}
+                  value={[form.name, form.phone, form.procedureInterest][i]}
+                  onChange={e => setForm(f => ({ ...f, [['name','phone','procedureInterest'][i]]: e.target.value }))}
+                  fullWidth sx={{ '& .MuiOutlinedInput-root': { backgroundColor: '#1a1a1a', '& fieldset': { borderColor: '#2a2a2a' }, '&:hover fieldset': { borderColor: color }, input: { color: '#fff' } } }} />
+              ))}
+              <Button type="submit" fullWidth variant="contained" size="large" disabled={submitting}
+                sx={{ backgroundColor: color, '&:hover': { filter: 'brightness(0.9)' }, py: 1.75, fontSize: '1rem', fontWeight: 700, mt: 0.5 }}>
+                {submitting ? <CircularProgress size={22} sx={{ color: '#fff' }} /> : (campaign.ctaText || 'Quero agendar!')}
+              </Button>
+            </Box>
           </form>
         )}
 
         {/* Info clínica */}
-        <div className="pt-4 border-t border-white/10 space-y-2 text-white/40 text-xs">
-          <div className="flex items-center gap-2"><Phone className="w-3 h-3" />(41) 98444-3694</div>
-          <div className="flex items-center gap-2"><MapPin className="w-3 h-3" />Rua Amaro de Santa Rita, 357, Sala 2 — Curitiba/PR</div>
-          <div className="flex items-center gap-2"><Clock className="w-3 h-3" />Segunda a Sábado, 9h às 18h</div>
-        </div>
-
-        <p className="text-center text-white/20 text-xs pb-4">
-          CRBM PR1168 · Biomedicina Estética
-        </p>
-      </div>
-    </div>
+        <Box sx={{ mt: 5, pt: 3, borderTop: '1px solid #1f1f1f' }}>
+          {[
+            { icon: <PhoneOutlinedIcon sx={{ fontSize: 14 }} />, text: '(41) 98444-3694' },
+            { icon: <LocationOnOutlinedIcon sx={{ fontSize: 14 }} />, text: 'Rua Amaro de Santa Rita, 357, Sala 2 — Curitiba/PR' },
+            { icon: <AccessTimeOutlinedIcon sx={{ fontSize: 14 }} />, text: 'Segunda a Sábado, 9h às 18h' },
+          ].map((item, i) => (
+            <Box key={i} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1, mb: 1, color: 'rgba(255,255,255,0.3)' }}>
+              {item.icon}
+              <Typography sx={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', lineHeight: 1.4 }}>{item.text}</Typography>
+            </Box>
+          ))}
+          <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.15)', mt: 2, textAlign: 'center' }}>
+            CRBM PR1168 · Biomedicina Estética
+          </Typography>
+        </Box>
+      </Box>
+    </Box>
   );
 }
