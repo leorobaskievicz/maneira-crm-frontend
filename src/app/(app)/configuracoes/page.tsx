@@ -2,8 +2,9 @@
 import { useState } from 'react';
 import { ProceduresTab } from './procedures-tab';
 import { ProductsTab } from './products-tab';
+import { ClinicTab } from './clinic-tab';
 
-const tabs = ['Procedimentos', 'Produtos'];
+const tabs = ['Procedimentos', 'Produtos', 'Clínica'];
 
 export default function ConfiguracoesPage() {
   const [tab, setTab] = useState(0);
@@ -23,6 +24,7 @@ export default function ConfiguracoesPage() {
 
       {tab === 0 && <ProceduresTab />}
       {tab === 1 && <ProductsTab />}
+      {tab === 2 && <ClinicTab />}
     </div>
   );
 }

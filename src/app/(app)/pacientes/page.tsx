@@ -8,12 +8,14 @@ import { Badge } from '@/components/ui/badge';
 import { Plus, Search, Phone, Mail, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import { PatientDialog } from './patient-dialog';
+import { PatientSheet } from './patient-sheet';
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
 
   const load = async (q = '') => {
@@ -34,7 +36,7 @@ export default function PatientsPage() {
       if (selected) await api.put(`/patients/${selected.id}`, data);
       else await api.post('/patients', data);
       toast.success(selected ? 'Paciente atualizado!' : 'Paciente cadastrado!');
-      setDialogOpen(false); setSelected(null); load(search);
+      setDialogOpen(false); setSheetOpen(false); setSelected(null); load(search);
     } catch { toast.error('Erro ao salvar paciente'); }
   };
 
@@ -58,8 +60,8 @@ export default function PatientsPage() {
       {loading ? <div className="text-center py-12 text-gray-400">Carregando...</div> : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {patients.map((p) => (
-            <Card key={p.id} className="border-rose-100 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => { setSelected(p); setDialogOpen(true); }}>
+            <Card key={p.id} className="border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => { setSelected(p); setSheetOpen(true); }}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
@@ -83,6 +85,7 @@ export default function PatientsPage() {
         </div>
       )}
       <PatientDialog open={dialogOpen} onClose={() => { setDialogOpen(false); setSelected(null); }} onSave={handleSave} patient={selected} />
+      <PatientSheet open={sheetOpen} onClose={() => { setSheetOpen(false); setSelected(null); }} onSave={handleSave} patient={selected} />
     </div>
   );
 }
