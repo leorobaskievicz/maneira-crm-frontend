@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -67,37 +68,39 @@ export default function TarefasPage() {
         <Grid container spacing={2}>
           {boards.map(b => (
             <Grid key={b.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card sx={{ '&:hover': { borderColor: '#A0585A55', cursor: 'pointer' } }} onClick={() => router.push(`/tarefas/${b.id}`)}>
-                <Box sx={{ height: 4, backgroundColor: '#1A1A1A' }} />
-                <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AssignmentTurnedInOutlinedIcon sx={{ color: '#A0585A', fontSize: 20 }} />
-                      <Typography sx={{ fontWeight: 600, fontSize: '1rem' }}>{b.name}</Typography>
+              <Link href={`/tarefas/${b.id}`} style={{ textDecoration: 'none' }}>
+                <Card sx={{ border: '1px solid #EDE8E8', '&:hover': { borderColor: '#A0585A55', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', transform: 'translateY(-2px)' }, transition: 'all 0.2s' }}>
+                  <Box sx={{ height: 4, backgroundColor: '#1A1A1A' }} />
+                  <CardContent>
+                    <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AssignmentTurnedInOutlinedIcon sx={{ color: '#A0585A', fontSize: 20 }} />
+                        <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: '#1A1A1A' }}>{b.name}</Typography>
+                      </Box>
+                      <Box sx={{ display: 'flex', ml: 1 }}>
+                        <Tooltip title="Editar Nome">
+                          <IconButton size="small" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBoardForm({ id: b.id, name: b.name, description: b.description || '' }); setBoardDlg(true); }} sx={{ p: 0.25 }}>
+                            <EditOutlinedIcon sx={{ fontSize: 16, color: '#BDBDBD' }} />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Excluir Quadro">
+                          <IconButton size="small" onClick={(e) => { e.preventDefault(); e.stopPropagation(); deleteBoard(b.id, e); }} sx={{ p: 0.25, color: '#D32F2F' }}>
+                            <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </Box>
-                    <Box sx={{ display: 'flex', ml: 1 }}>
-                      <Tooltip title="Editar Nome">
-                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setBoardForm({ id: b.id, name: b.name, description: b.description || '' }); setBoardDlg(true); }} sx={{ p: 0.25 }}>
-                          <EditOutlinedIcon sx={{ fontSize: 16, color: '#BDBDBD' }} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Excluir Quadro">
-                        <IconButton size="small" onClick={(e) => deleteBoard(b.id, e)} sx={{ p: 0.25, color: '#D32F2F' }}>
-                          <DeleteOutlinedIcon sx={{ fontSize: 16 }} />
-                        </IconButton>
-                      </Tooltip>
+                    {b.description ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{b.description}</Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic', opacity: 0.5 }}>Sem descrição</Typography>
+                    )}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Chip label="Kanban" size="small" sx={{ fontSize: '0.65rem', height: 20, backgroundColor: '#F7F5F5', color: '#6B6B6B' }} />
                     </Box>
-                  </Box>
-                  {b.description ? (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{b.description}</Typography>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2, fontStyle: 'italic', opacity: 0.5 }}>Sem descrição</Typography>
-                  )}
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Chip label="Kanban" size="small" sx={{ fontSize: '0.65rem', height: 20, backgroundColor: '#F7F5F5' }} />
-                  </Box>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </Link>
             </Grid>
           ))}
         </Grid>

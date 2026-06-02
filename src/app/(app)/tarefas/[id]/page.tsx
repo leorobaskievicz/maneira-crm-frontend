@@ -14,10 +14,9 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import api from '@/lib/api';
 import { toast } from 'sonner';
 
-export default function TarefasBoardPage() {
-  const params = useParams();
+export default function TarefasBoardPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const boardId = params?.id as string;
+  const boardId = params?.id;
   const [boardData, setBoardData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
