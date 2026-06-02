@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,13 +24,20 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({ resolver: zodResolver(schema) });
 
+  // Se já está logado, vai pro dashboard
+  useEffect(() => {
+    if (typeof window !== 'undefined' && localStorage.getItem('token')) {
+      router.replace('/dashboard');
+    }
+  }, [router]);
+
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
       const res = await api.post('/auth/login', data);
       localStorage.setItem('token', res.data.access_token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      router.push('/dashboard');
+      router.replace('/dashboard');
     } catch {
       toast.error('Email ou senha incorretos');
     } finally {
