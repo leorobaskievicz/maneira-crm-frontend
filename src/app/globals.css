@@ -1,50 +1,6 @@
 @import "tailwindcss";
-@import "tw-animate-css";
-@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;800&display=swap');
-
-@custom-variant dark (&:is(.dark *));
-
-:root {
-  /* Identidade visual Clínica Caroline Maneira */
-  --background: 0 0% 100%;
-  --foreground: 0 5% 12%;
-  --card: 0 0% 100%;
-  --card-foreground: 0 5% 12%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 0 5% 12%;
-  --primary: 358 28% 48%;        /* #A0585A — rose/mauve escuro */
-  --primary-foreground: 0 0% 100%;
-  --secondary: 358 28% 63%;      /* #C4807F — rose médio */
-  --secondary-foreground: 0 0% 100%;
-  --muted: 358 15% 96%;
-  --muted-foreground: 358 10% 50%;
-  --accent: 358 25% 92%;
-  --accent-foreground: 358 28% 35%;
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-  --border: 358 20% 88%;
-  --input: 358 20% 88%;
-  --ring: 358 28% 48%;
-  --radius: 0.5rem;
-
-  /* Sidebar */
-  --sidebar-background: 0 5% 12%;     /* #1A1A1A — escuro do site */
-  --sidebar-foreground: 0 0% 95%;
-  --sidebar-primary: 358 28% 48%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 358 28% 20%;
-  --sidebar-accent-foreground: 0 0% 95%;
-  --sidebar-border: 0 5% 20%;
-  --sidebar-ring: 358 28% 48%;
-}
 
 body {
-  font-family: 'Open Sans', sans-serif;
-  background-color: hsl(var(--background));
-  color: hsl(var(--foreground));
-}
-
-/* Letter-spacing estilo do site */
-h1, h2, h3 {
-  letter-spacing: 0.05em;
+  margin: 0;
+  padding: 0;
 }

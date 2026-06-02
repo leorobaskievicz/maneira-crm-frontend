@@ -1,25 +1,44 @@
 'use client';
 import { useEffect, useState } from 'react';
+import {
+  Box, Grid, Card, CardContent, Typography, Chip, Divider,
+  List, ListItem, ListItemText, ListItemSecondaryAction, CircularProgress, Alert,
+} from '@mui/material';
+import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
+import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
+import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
+import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
+import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
+import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import api from '@/lib/api';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, DollarSign, Users, AlertTriangle, UserPlus, Clock } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-const statusColors: Record<string, string> = {
-  scheduled: 'bg-blue-100 text-blue-700',
-  confirmed: 'bg-green-100 text-green-700',
-  in_progress: 'bg-yellow-100 text-yellow-700',
-  completed: 'bg-gray-100 text-gray-600',
-  no_show: 'bg-red-100 text-red-700',
-  cancelled: 'bg-gray-100 text-gray-400',
+const statusMap: Record<string, { label: string; color: 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning' }> = {
+  scheduled: { label: 'Agendado', color: 'info' },
+  confirmed: { label: 'Confirmado', color: 'success' },
+  in_progress: { label: 'Em andamento', color: 'warning' },
+  completed: { label: 'Concluído', color: 'default' },
+  no_show: { label: 'Faltou', color: 'error' },
+  cancelled: { label: 'Cancelado', color: 'default' },
 };
 
-const statusLabels: Record<string, string> = {
-  scheduled: 'Agendado', confirmed: 'Confirmado', in_progress: 'Em andamento',
-  completed: 'Concluído', no_show: 'Faltou', cancelled: 'Cancelado',
-};
+function KPICard({ icon, label, value, sub }: { icon: React.ReactNode; label: string; value: string; sub?: string }) {
+  return (
+    <Card>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1.5 }}>
+          <Typography variant="h6" sx={{ color: '#9E9E9E', fontSize: '0.7rem' }}>{label}</Typography>
+          <Box sx={{ color: '#A0585A', opacity: 0.7 }}>{icon}</Box>
+        </Box>
+        <Typography sx={{ fontSize: '1.6rem', fontWeight: 700, color: '#1A1A1A', lineHeight: 1.2 }}>
+          {value}
+        </Typography>
+        {sub && <Typography variant="caption" sx={{ color: '#BDBDBD', mt: 0.5, display: 'block' }}>{sub}</Typography>}
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState<any>(null);
@@ -29,129 +48,144 @@ export default function DashboardPage() {
     api.get('/dashboard').then(r => setData(r.data)).catch(console.error).finally(() => setLoading(false));
   }, []);
 
+  const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+
   if (loading) return (
-    <div className="p-8 flex items-center justify-center h-full">
-      <div className="w-8 h-8 border-4 border-rose-300 border-t-rose-600 rounded-full animate-spin" />
-    </div>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <CircularProgress size={32} sx={{ color: '#A0585A' }} />
+    </Box>
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm">{format(new Date(), "EEEE, d 'de' MMMM", { locale: ptBR })}</p>
-      </div>
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
+      {/* Header */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, color: '#1A1A1A' }}>Dashboard</Typography>
+        <Typography variant="body2" sx={{ color: '#9E9E9E', mt: 0.5 }}>
+          {format(new Date(), "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
+        </Typography>
+      </Box>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-rose-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Agenda hoje</CardTitle>
-            <Calendar className="w-4 h-4 text-rose-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{data?.today?.count ?? 0}</div>
-            <p className="text-xs text-gray-500">atendimentos</p>
-          </CardContent>
-        </Card>
+      {/* KPIs */}
+      <Grid container spacing={2} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <KPICard
+            icon={<CalendarTodayOutlinedIcon fontSize="small" />}
+            label="AGENDA HOJE"
+            value={String(data?.today?.count ?? 0)}
+            sub="atendimentos"
+          />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <KPICard
+            icon={<AttachMoneyOutlinedIcon fontSize="small" />}
+            label="RECEITA DO MÊS"
+            value={fmt(data?.month?.revenue)}
+            sub={`ticket médio ${fmt(data?.month?.ticketMedio)}`}
+          />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <KPICard
+            icon={<PeopleOutlinedIcon fontSize="small" />}
+            label="PACIENTES ATIVAS"
+            value={String(data?.totals?.activePatients ?? 0)}
+            sub="cadastradas"
+          />
+        </Grid>
+        <Grid size={{ xs: 6, md: 3 }}>
+          <KPICard
+            icon={<PersonAddOutlinedIcon fontSize="small" />}
+            label="NOVOS LEADS"
+            value={String(data?.totals?.newLeads ?? 0)}
+            sub="aguardando contato"
+          />
+        </Grid>
+      </Grid>
 
-        <Card className="border-rose-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Receita do mês</CardTitle>
-            <DollarSign className="w-4 h-4 text-rose-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data?.month?.revenue ?? 0)}
-            </div>
-            <p className="text-xs text-gray-500">ticket médio: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data?.month?.ticketMedio ?? 0)}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-rose-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Pacientes ativos</CardTitle>
-            <Users className="w-4 h-4 text-rose-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{data?.totals?.activePatients ?? 0}</div>
-            <p className="text-xs text-gray-500">cadastrados</p>
-          </CardContent>
-        </Card>
-
-        <Card className="border-rose-100">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600">Novos leads</CardTitle>
-            <UserPlus className="w-4 h-4 text-rose-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900">{data?.totals?.newLeads ?? 0}</div>
-            <p className="text-xs text-gray-500">aguardando contato</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <Grid container spacing={2}>
         {/* Agenda do dia */}
-        <div className="lg:col-span-2">
-          <Card className="border-rose-100">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
-                <Clock className="w-4 h-4 text-rose-500" /> Agenda de hoje
-              </CardTitle>
-            </CardHeader>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Card>
             <CardContent>
-              {data?.today?.appointments?.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-8">Nenhum agendamento para hoje 🌸</p>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <AccessTimeOutlinedIcon fontSize="small" sx={{ color: '#A0585A' }} />
+                <Typography variant="h6">Agenda de hoje</Typography>
+              </Box>
+              <Divider sx={{ mb: 1 }} />
+              {!data?.today?.appointments?.length ? (
+                <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#BDBDBD' }}>Nenhum agendamento para hoje 🌸</Typography>
+                </Box>
               ) : (
-                <div className="space-y-3">
-                  {data?.today?.appointments?.map((apt: any) => (
-                    <div key={apt.id} className="flex items-center gap-3 p-3 rounded-xl bg-rose-50 border border-rose-100">
-                      <div className="text-center w-12">
-                        <div className="text-sm font-bold text-rose-600">
-                          {format(new Date(apt.scheduledAt), 'HH:mm')}
-                        </div>
-                        <div className="text-xs text-gray-400">{apt.durationMin}min</div>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-gray-900 truncate">{apt.patient?.name}</div>
-                        <div className="text-xs text-gray-500 truncate">{apt.procedure?.name}</div>
-                      </div>
-                      <Badge className={statusColors[apt.status]}>{statusLabels[apt.status]}</Badge>
-                    </div>
+                <List disablePadding>
+                  {data.today.appointments.map((apt: any, i: number) => (
+                    <ListItem
+                      key={apt.id}
+                      divider={i < data.today.appointments.length - 1}
+                      sx={{ px: 0, py: 1.5 }}
+                    >
+                      <Box sx={{ mr: 2, textAlign: 'center', minWidth: 44 }}>
+                        <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#A0585A' }}>
+                          {format(parseISO(apt.scheduledAt), 'HH:mm')}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#BDBDBD' }}>
+                          {apt.durationMin}min
+                        </Typography>
+                      </Box>
+                      <ListItemText
+                        primary={apt.patient?.name}
+                        secondary={apt.procedure?.name}
+                        slotProps={{
+                          primary: { style: { fontWeight: 600, fontSize: '0.875rem' } },
+                          secondary: { style: { fontSize: '0.8rem' } },
+                        }}
+                      />
+                      <ListItemSecondaryAction>
+                        <Chip
+                          label={statusMap[apt.status]?.label}
+                          color={statusMap[apt.status]?.color}
+                          size="small"
+                          variant="outlined"
+                          sx={{ fontSize: '0.7rem' }}
+                        />
+                      </ListItemSecondaryAction>
+                    </ListItem>
                   ))}
-                </div>
+                </List>
               )}
             </CardContent>
           </Card>
-        </div>
+        </Grid>
 
         {/* Alertas */}
-        <Card className="border-rose-100">
-          <CardHeader>
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-500" /> Alertas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data?.alerts?.lowStock?.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">Nenhum alerta ✨</p>
-            ) : (
-              <div className="space-y-2">
-                {data?.alerts?.lowStock?.map((p: any) => (
-                  <div key={p.id} className="flex items-center gap-2 p-2 rounded-lg bg-amber-50 border border-amber-100">
-                    <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-                    <div className="text-sm">
-                      <span className="font-medium text-gray-700">{p.name}</span>
-                      <span className="text-gray-500 ml-1">({p.quantity} {p.unit})</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                <WarningAmberOutlinedIcon fontSize="small" sx={{ color: '#F57C00' }} />
+                <Typography variant="h6">Alertas</Typography>
+              </Box>
+              <Divider sx={{ mb: 1 }} />
+              {!data?.alerts?.lowStock?.length ? (
+                <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#BDBDBD' }}>Tudo em ordem ✨</Typography>
+                </Box>
+              ) : (
+                <List disablePadding>
+                  {data.alerts.lowStock.map((p: any) => (
+                    <ListItem key={p.id} sx={{ px: 0, py: 1 }}>
+                      <Alert severity="warning" sx={{ width: '100%', py: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{p.name}</Typography>
+                        <Typography variant="caption">Estoque: {p.quantity} {p.unit} (mín: {p.minQuantity})</Typography>
+                      </Alert>
+                    </ListItem>
+                  ))}
+                </List>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
   );
 }

@@ -1,39 +1,50 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { Sidebar } from '@/components/layout/sidebar';
-import { BottomNav } from '@/components/layout/bottom-nav';
+import { useRouter } from 'next/navigation';
+import { Box, CircularProgress } from '@mui/material';
+import { Sidebar, DRAWER_WIDTH } from '@/components/layout/Sidebar';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const pathname = usePathname();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // Só roda no client — evita SSR redirect loop
-    const token = localStorage.getItem('token');
-    if (!token) {
+    if (!localStorage.getItem('token')) {
       router.replace('/login');
     } else {
       setReady(true);
     }
-  }, [pathname, router]);
+  }, [router]);
 
   if (!ready) return (
-    <div className="min-h-screen flex items-center justify-center bg-rose-50">
-      <div className="w-8 h-8 border-4 border-rose-300 border-t-rose-600 rounded-full animate-spin" />
-    </div>
+    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F7F5F5' }}>
+      <CircularProgress size={32} sx={{ color: '#A0585A' }} />
+    </Box>
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      <div className="hidden md:flex">
+    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F5F5' }}>
+      {/* Sidebar — desktop only */}
+      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
         <Sidebar />
-      </div>
-      <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+      </Box>
+
+      {/* Main content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          minWidth: 0,
+          pb: { xs: 8, md: 0 },
+          ml: { md: 0 },
+        }}
+      >
         {children}
-      </main>
+      </Box>
+
+      {/* Bottom nav — mobile only */}
       <BottomNav />
-    </div>
+    </Box>
   );
 }
