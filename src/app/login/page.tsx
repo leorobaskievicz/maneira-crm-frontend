@@ -46,16 +46,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-rose-50 via-pink-50 to-white p-4">
-      <Card className="w-full max-w-md shadow-xl border-rose-100">
-        <CardHeader className="text-center pb-2">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{background: 'linear-gradient(135deg, #1A1A1A 0%, #2d1f1f 50%, #A0585A22 100%)'}}>
+      <Card className="w-full max-w-md shadow-2xl border-0 bg-white">
+        <CardHeader className="text-center pb-2 pt-8">
           <div className="flex justify-center mb-4">
-            <div className="w-16 h-16 bg-gradient-to-br from-rose-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Sparkles className="w-8 h-8 text-white" />
+            <div className="w-16 h-16 flex items-center justify-center">
+              <Sparkles className="w-10 h-10" style={{color: '#A0585A'}} />
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-rose-900">Maneira CRM</CardTitle>
-          <CardDescription>Sistema de gestão para sua clínica</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-widest uppercase" style={{color: '#1A1A1A'}}>Maneira CRM</CardTitle>
+          <CardDescription className="tracking-wider uppercase text-xs mt-1">Clínica Caroline Maneira</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -69,7 +69,7 @@ export default function LoginPage() {
               <Input id="password" type="password" placeholder="••••••" {...register('password')} />
               {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
             </div>
-            <Button type="submit" className="w-full bg-rose-500 hover:bg-rose-600" disabled={loading}>
+            <Button type="submit" className="w-full tracking-widest uppercase text-sm" style={{backgroundColor: '#A0585A'}} disabled={loading}>
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>

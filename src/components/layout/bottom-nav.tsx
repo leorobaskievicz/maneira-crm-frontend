@@ -23,12 +23,12 @@ export function BottomNav() {
           <Link key={href} href={href}
             className={cn(
               'flex-1 flex flex-col items-center justify-center py-2 gap-0.5 transition-colors',
-              active ? 'text-rose-600' : 'text-gray-400'
+              active ? 'text-[#A0585A]' : 'text-gray-400'
             )}
           >
             <Icon className={cn('w-5 h-5', active && 'stroke-[2.5]')} />
             <span className="text-[10px] font-medium">{label}</span>
-            {active && <div className="w-1 h-1 rounded-full bg-rose-500 mt-0.5" />}
+            {active && <div className="w-1 h-1 rounded-full mt-0.5" style={{background:'#A0585A'}} />}
           </Link>
         );
       })}
