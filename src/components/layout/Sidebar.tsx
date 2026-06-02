@@ -18,6 +18,8 @@ import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 
 const DRAWER_WIDTH = 224;
 
+import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
+
 const navItems = [
   { href: '/dashboard', icon: <DashboardOutlinedIcon fontSize="small" />, label: 'Dashboard' },
   { href: '/pacientes', icon: <PeopleOutlinedIcon fontSize="small" />, label: 'Pacientes' },
@@ -26,6 +28,7 @@ const navItems = [
   { href: '/financeiro', icon: <AttachMoneyOutlinedIcon fontSize="small" />, label: 'Financeiro' },
   { href: '/estoque', icon: <InventoryOutlinedIcon fontSize="small" />, label: 'Estoque' },
   { href: '/leads', icon: <PersonAddOutlinedIcon fontSize="small" />, label: 'Leads' },
+  { href: '/tarefas', icon: <AssignmentTurnedInOutlinedIcon fontSize="small" />, label: 'Tarefas (Kanban)' },
   { href: '/campanhas', icon: <CampaignOutlinedIcon fontSize="small" />, label: 'Campanhas' },
   { href: '/configuracoes', icon: <SettingsOutlinedIcon fontSize="small" />, label: 'Configurações' },
 ];

@@ -7,12 +7,13 @@ import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined
 import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
 import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
 
+import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
+
 const tabs = [
   { href: '/dashboard', icon: <DashboardOutlinedIcon />, label: 'Início' },
   { href: '/pacientes', icon: <PeopleOutlinedIcon />, label: 'Pacientes' },
   { href: '/agenda', icon: <CalendarTodayOutlinedIcon />, label: 'Agenda' },
-  { href: '/financeiro', icon: <AttachMoneyOutlinedIcon />, label: 'Financeiro' },
-  { href: '/leads', icon: <PersonAddOutlinedIcon />, label: 'Leads' },
+  { href: '/tarefas', icon: <AssignmentTurnedInOutlinedIcon />, label: 'Tarefas' },
 ];
 
 export function BottomNav() {
