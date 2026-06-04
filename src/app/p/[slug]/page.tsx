@@ -10,6 +10,8 @@ import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { toast } from 'sonner';
+import { onlyDigits } from '@/lib/masks';
+import { WheelLanding } from './WheelLanding';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -33,7 +35,7 @@ export default function LandingPage() {
   const handleWhatsApp = async () => {
     await trackClick();
     const msg = encodeURIComponent(`Olá! Vi a campanha "${campaign.title}" e gostaria de saber mais sobre ${form.procedureInterest || campaign.procedures?.[0] || 'os procedimentos'}.${form.name ? ` Meu nome é ${form.name}.` : ''}`);
-    window.open(`https://wa.me/55${campaign.whatsappNumber}?text=${msg}`, '_blank');
+    window.open(`https://wa.me/55${onlyDigits(campaign.whatsappNumber)}?text=${msg}`, '_blank');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -62,6 +64,11 @@ export default function LandingPage() {
       </Box>
     </Box>
   );
+
+  // Roleta de Prêmios — fluxo de 3 passos
+  if (campaign.campaignType === 'wheel') {
+    return <WheelLanding campaign={campaign} slug={slug} />;
+  }
 
   const color = campaign.primaryColor || '#A0585A';
 

@@ -1,25 +1,16 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
-import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
-import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
-import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
-import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
+import { NAV_ITEMS, BOTTOM_NAV_HREFS } from './nav';
 
-import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
-
-const tabs = [
-  { href: '/dashboard', icon: <DashboardOutlinedIcon />, label: 'Início' },
-  { href: '/pacientes', icon: <PeopleOutlinedIcon />, label: 'Pacientes' },
-  { href: '/agenda', icon: <CalendarTodayOutlinedIcon />, label: 'Agenda' },
-  { href: '/tarefas', icon: <AssignmentTurnedInOutlinedIcon />, label: 'Tarefas' },
-];
+const tabs = BOTTOM_NAV_HREFS
+  .map((href) => NAV_ITEMS.find((i) => i.href === href))
+  .filter((i): i is NonNullable<typeof i> => Boolean(i));
 
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const current = tabs.findIndex(t => pathname.startsWith(t.href));
+  const current = tabs.findIndex((t) => pathname === t.href || pathname.startsWith(t.href + '/'));
 
   return (
     <Paper
@@ -31,16 +22,16 @@ export function BottomNav() {
       elevation={0}
     >
       <BottomNavigation
-        value={current}
+        value={current === -1 ? false : current}
         onChange={(_, v) => router.push(tabs[v].href)}
         sx={{
-          height: 60,
+          height: 62,
           '& .MuiBottomNavigationAction-root': { color: '#BDBDBD', minWidth: 0 },
           '& .MuiBottomNavigationAction-root.Mui-selected': { color: '#A0585A' },
           '& .MuiBottomNavigationAction-label': { fontSize: '0.65rem', fontWeight: 500 },
         }}
       >
-        {tabs.map(t => (
+        {tabs.map((t) => (
           <BottomNavigationAction key={t.href} label={t.label} icon={t.icon} />
         ))}
       </BottomNavigation>

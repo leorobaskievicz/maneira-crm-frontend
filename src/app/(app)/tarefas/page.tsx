@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Grid, Card, CardContent, IconButton, Tooltip, Chip,
@@ -17,7 +16,6 @@ export default function TarefasPage() {
   const [boards, setBoards] = useState<any[]>([]);
   const [boardDlg, setBoardDlg] = useState(false);
   const [boardForm, setBoardForm] = useState({ id: '', name: '', description: '' });
-  const router = useRouter();
 
   const loadBoards = async () => {
     const r = await api.get('/boards');
@@ -44,11 +42,7 @@ export default function TarefasPage() {
 
   return (
     <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Box>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>Quadros de Tarefas</Typography>
-          <Typography variant="body2">Organize projetos, financeiro e administrativo</Typography>
-        </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 3 }}>
         <Button variant="contained" startIcon={<AddOutlinedIcon />} sx={{ backgroundColor: '#A0585A' }} onClick={() => { setBoardForm({ id: '', name: '', description: '' }); setBoardDlg(true); }}>
           Novo Quadro
         </Button>

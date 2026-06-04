@@ -1,41 +1,18 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Box, Drawer, List, ListItem, ListItemButton, ListItemIcon,
-  ListItemText, Typography, Divider, IconButton, Tooltip, Avatar,
+  Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
 } from '@mui/material';
-import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
-import PeopleOutlinedIcon from '@mui/icons-material/PeopleOutlined';
-import CalendarTodayOutlinedIcon from '@mui/icons-material/CalendarTodayOutlined';
-import AssignmentOutlinedIcon from '@mui/icons-material/AssignmentOutlined';
-import AttachMoneyOutlinedIcon from '@mui/icons-material/AttachMoneyOutlined';
-import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined';
-import PersonAddOutlinedIcon from '@mui/icons-material/PersonAddOutlined';
-import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
-import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
-import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
+import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
+import { NAV_SECTIONS, findNavItem } from './nav';
 
-const DRAWER_WIDTH = 224;
-
-import AssignmentTurnedInOutlinedIcon from '@mui/icons-material/AssignmentTurnedInOutlined';
-
-const navItems = [
-  { href: '/dashboard', icon: <DashboardOutlinedIcon fontSize="small" />, label: 'Dashboard' },
-  { href: '/pacientes', icon: <PeopleOutlinedIcon fontSize="small" />, label: 'Pacientes' },
-  { href: '/agenda', icon: <CalendarTodayOutlinedIcon fontSize="small" />, label: 'Agenda' },
-  { href: '/atendimentos', icon: <AssignmentOutlinedIcon fontSize="small" />, label: 'Atendimentos' },
-  { href: '/financeiro', icon: <AttachMoneyOutlinedIcon fontSize="small" />, label: 'Financeiro' },
-  { href: '/estoque', icon: <InventoryOutlinedIcon fontSize="small" />, label: 'Estoque' },
-  { href: '/leads', icon: <PersonAddOutlinedIcon fontSize="small" />, label: 'Leads' },
-  { href: '/tarefas', icon: <AssignmentTurnedInOutlinedIcon fontSize="small" />, label: 'Tarefas (Kanban)' },
-  { href: '/campanhas', icon: <CampaignOutlinedIcon fontSize="small" />, label: 'Campanhas' },
-  { href: '/configuracoes', icon: <SettingsOutlinedIcon fontSize="small" />, label: 'Configurações' },
-];
+export const DRAWER_WIDTH = 248;
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const activeHref = findNavItem(pathname)?.href;
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -44,91 +21,109 @@ export function Sidebar() {
   };
 
   return (
-    <Drawer
-      variant="permanent"
+    <Box
+      component="aside"
       sx={{
         width: DRAWER_WIDTH,
+        height: '100vh',
+        position: 'sticky',
+        top: 0,
         flexShrink: 0,
-        '& .MuiDrawer-paper': {
-          width: DRAWER_WIDTH,
-          boxSizing: 'border-box',
-          backgroundColor: '#1A1A1A',
-          borderRight: 'none',
-          display: 'flex',
-          flexDirection: 'column',
-        },
+        backgroundColor: '#161616',
+        backgroundImage: 'linear-gradient(180deg, #1E1E1E 0%, #141414 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRight: '1px solid #262626',
       }}
     >
-      {/* Logo */}
-      <Box sx={{ px: 2.5, py: 2.5, display: 'flex', alignItems: 'center', gap: 1.5 }}>
-        <Box sx={{
-          width: 32, height: 32, borderRadius: '6px',
-          backgroundColor: '#A0585A',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-        }}>
-          <AutoAwesomeOutlinedIcon sx={{ color: '#fff', fontSize: 16 }} />
+      {/* Marca */}
+      <Box sx={{ px: 2.5, py: 2.75, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box
+          sx={{
+            width: 36, height: 36, borderRadius: '9px', flexShrink: 0,
+            background: 'linear-gradient(135deg, #C4807F 0%, #A0585A 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 4px 12px rgba(160,88,90,0.4)',
+          }}
+        >
+          <AutoAwesomeOutlinedIcon sx={{ color: '#fff', fontSize: 18 }} />
         </Box>
-        <Box>
-          <Typography sx={{ color: '#fff', fontSize: '0.8rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', lineHeight: 1.2 }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ color: '#fff', fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.04em', lineHeight: 1.2 }}>
             Maneira CRM
           </Typography>
-          <Typography sx={{ color: '#666', fontSize: '0.65rem', letterSpacing: '0.04em' }}>
+          <Typography sx={{ color: '#7A7A7A', fontSize: '0.68rem', letterSpacing: '0.02em' }}>
             Clínica Caroline
           </Typography>
         </Box>
       </Box>
 
-      <Divider sx={{ borderColor: '#2A2A2A', mx: 2 }} />
+      {/* Navegação agrupada */}
+      <Box sx={{ flex: 1, overflowY: 'auto', px: 1.25, py: 1, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: '#333', borderRadius: 2 } }}>
+        {NAV_SECTIONS.map((section) => (
+          <Box key={section.heading} sx={{ mb: 1.5 }}>
+            <Typography
+              sx={{
+                px: 1.5, mb: 0.5, color: '#5C5C5C', fontSize: '0.62rem',
+                fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase',
+              }}
+            >
+              {section.heading}
+            </Typography>
+            <List disablePadding>
+              {section.items.map(({ href, icon, label }) => {
+                const active = activeHref === href;
+                return (
+                  <ListItemButton
+                    key={href}
+                    onClick={() => router.push(href)}
+                    disableRipple
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '8px',
+                      mb: 0.25,
+                      py: 0.85,
+                      pl: 1.5,
+                      transition: 'background-color .15s, color .15s',
+                      backgroundColor: active ? 'rgba(160,88,90,0.16)' : 'transparent',
+                      '&:hover': { backgroundColor: active ? 'rgba(160,88,90,0.22)' : 'rgba(255,255,255,0.05)' },
+                      '&::before': active
+                        ? { content: '""', position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, borderRadius: 3, backgroundColor: '#C4807F' }
+                        : {},
+                      '& .MuiListItemIcon-root': { color: active ? '#E0A9A8' : '#777', minWidth: 32 },
+                      '& .MuiListItemText-primary': {
+                        fontSize: '0.83rem',
+                        fontWeight: active ? 600 : 500,
+                        color: active ? '#fff' : '#A8A8A8',
+                      },
+                    }}
+                  >
+                    <ListItemIcon>{icon}</ListItemIcon>
+                    <ListItemText primary={label} />
+                  </ListItemButton>
+                );
+              })}
+            </List>
+          </Box>
+        ))}
+      </Box>
 
-      {/* Nav */}
-      <List sx={{ flex: 1, py: 1.5, px: 0.5 }}>
-        {navItems.map(({ href, icon, label }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <ListItem key={href} disablePadding sx={{ mb: 0.25 }}>
-              <ListItemButton
-                selected={active}
-                onClick={() => router.push(href)}
-                sx={{
-                  borderRadius: '4px',
-                  mx: 0.5,
-                  py: 0.9,
-                  '& .MuiListItemIcon-root': { color: active ? '#fff' : '#666', minWidth: 34 },
-                  '& .MuiListItemText-primary': {
-                    fontSize: '0.82rem',
-                    fontWeight: active ? 600 : 400,
-                    color: active ? '#fff' : '#999',
-                  },
-                }}
-              >
-                <ListItemIcon>{icon}</ListItemIcon>
-                <ListItemText primary={label} />
-              </ListItemButton>
-            </ListItem>
-          );
-        })}
-      </List>
-
-      <Divider sx={{ borderColor: '#2A2A2A', mx: 2 }} />
-
-      {/* Footer */}
-      <Box sx={{ p: 1.5 }}>
+      {/* Rodapé / sair */}
+      <Box sx={{ p: 1.25, borderTop: '1px solid #262626' }}>
         <ListItemButton
           onClick={logout}
+          disableRipple
           sx={{
-            borderRadius: '4px',
-            py: 0.9,
-            '& .MuiListItemIcon-root': { color: '#555', minWidth: 34 },
-            '& .MuiListItemText-primary': { fontSize: '0.82rem', color: '#777' },
-            '&:hover': { backgroundColor: 'rgba(255,255,255,0.05)' },
+            borderRadius: '8px', py: 0.85, pl: 1.5,
+            '& .MuiListItemIcon-root': { color: '#666', minWidth: 32 },
+            '& .MuiListItemText-primary': { fontSize: '0.83rem', color: '#888', fontWeight: 500 },
+            '&:hover': { backgroundColor: 'rgba(211,47,47,0.12)', '& .MuiListItemIcon-root, & .MuiListItemText-primary': { color: '#E57373' } },
           }}
         >
           <ListItemIcon><LogoutOutlinedIcon fontSize="small" /></ListItemIcon>
           <ListItemText primary="Sair" />
         </ListItemButton>
       </Box>
-    </Drawer>
+    </Box>
   );
 }
-
-export { DRAWER_WIDTH };

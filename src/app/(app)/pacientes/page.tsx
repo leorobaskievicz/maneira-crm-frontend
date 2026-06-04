@@ -11,6 +11,7 @@ import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import api from '@/lib/api';
+import { MaskedTextField } from '@/components/form/MaskedTextField';
 import { toast } from 'sonner';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -167,9 +168,9 @@ export default function PatientsPage() {
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid size={12}><TextField label="Nome *" fullWidth value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></Grid>
-            <Grid size={{ xs: 12, sm: 6 }}><TextField label="Telefone" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></Grid>
+            <Grid size={{ xs: 12, sm: 6 }}><MaskedTextField mask="phone" label="Telefone" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></Grid>
             <Grid size={{ xs: 12, sm: 6 }}><TextField label="Data de nascimento" type="date" fullWidth value={form.birthDate} onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} slotProps={{ inputLabel: { shrink: true } }} /></Grid>
-            <Grid size={12}><TextField label="Email" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Grid>
+            <Grid size={12}><TextField type="email" label="Email" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Grid>
             <Grid size={12}><TextField label="Endereço" fullWidth value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></Grid>
             <Grid size={12}><TextField label="Alergias" fullWidth multiline rows={2} value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} /></Grid>
             <Grid size={12}><TextField label="Contraindicações" fullWidth multiline rows={2} value={form.contraindications} onChange={e => setForm(f => ({ ...f, contraindications: e.target.value }))} /></Grid>
@@ -202,9 +203,9 @@ export default function PatientsPage() {
             <Box sx={{ p: 2.5 }}>
               <Grid container spacing={2}>
                 <Grid size={12}><TextField label="Nome" fullWidth value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></Grid>
-                <Grid size={{ xs: 12, sm: 6 }}><TextField label="Telefone" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></Grid>
+                <Grid size={{ xs: 12, sm: 6 }}><MaskedTextField mask="phone" label="Telefone" fullWidth value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} /></Grid>
                 <Grid size={{ xs: 12, sm: 6 }}><TextField label="Nascimento" type="date" fullWidth value={form.birthDate} onChange={e => setForm(f => ({ ...f, birthDate: e.target.value }))} slotProps={{ inputLabel: { shrink: true } }} /></Grid>
-                <Grid size={12}><TextField label="Email" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Grid>
+                <Grid size={12}><TextField type="email" label="Email" fullWidth value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Grid>
                 <Grid size={12}><TextField label="Alergias" fullWidth multiline rows={2} value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} /></Grid>
                 <Grid size={12}><TextField label="Observações" fullWidth multiline rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} /></Grid>
               </Grid>

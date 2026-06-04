@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Box, CircularProgress } from '@mui/material';
-import { Sidebar, DRAWER_WIDTH } from '@/components/layout/Sidebar';
+import { Sidebar } from '@/components/layout/Sidebar';
+import { Topbar } from '@/components/layout/Topbar';
 import { BottomNav } from '@/components/layout/BottomNav';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -24,26 +25,29 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', backgroundColor: '#F7F5F5' }}>
+    <Box sx={{ display: 'flex', height: '100vh', backgroundColor: '#F7F5F5', overflow: 'hidden' }}>
       {/* Sidebar — desktop only */}
-      <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+      <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
         <Sidebar />
       </Box>
 
-      {/* Main content */}
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          minWidth: 0,
-          pb: { xs: 8, md: 0 },
-          ml: { md: 0 },
-        }}
-      >
-        {children}
+      {/* Coluna principal */}
+      <Box component="main" sx={{ flexGrow: 1, minWidth: 0, display: 'flex', flexDirection: 'column', height: '100vh' }}>
+        <Topbar />
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: 'auto',
+            pb: { xs: 9, md: 0 },
+            '&::-webkit-scrollbar': { width: 8 },
+            '&::-webkit-scrollbar-thumb': { background: '#DDD', borderRadius: 4 },
+          }}
+        >
+          {children}
+        </Box>
       </Box>
 
-      {/* Bottom nav — mobile only */}
+      {/* Navegação inferior — mobile only */}
       <BottomNav />
     </Box>
   );

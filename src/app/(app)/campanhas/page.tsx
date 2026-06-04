@@ -2,8 +2,11 @@
 import { useEffect, useState } from 'react';
 import {
   Box, Typography, Button, Card, CardContent, Chip, Grid, IconButton, Tooltip,
+  Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText,
 } from '@mui/material';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
+import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
+import CasinoOutlinedIcon from '@mui/icons-material/CasinoOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import CursorClickIcon from '@mui/icons-material/AdsClickOutlined';
 import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
@@ -18,9 +21,17 @@ export default function CampanhasPage() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [editorOpen, setEditorOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
+  const [winners, setWinners] = useState<{ campaign: any; entries: any[] } | null>(null);
 
   const load = async () => { const r = await api.get('/campaigns'); setCampaigns(r.data); };
   useEffect(() => { load(); }, []);
+
+  const openWinners = async (c: any) => {
+    try {
+      const r = await api.get(`/campaigns/${c.id}/entries`);
+      setWinners({ campaign: c, entries: r.data });
+    } catch { toast.error('Erro ao carregar ganhadores'); }
+  };
 
   const remove = async (id: string) => {
     if (!confirm('Remover campanha?')) return;
@@ -62,11 +73,15 @@ export default function CampanhasPage() {
               <Card>
                 <Box sx={{ height: 4, backgroundColor: c.primaryColor || '#A0585A' }} />
                 <CardContent>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 0.5 }}>
                     <Typography sx={{ fontWeight: 600, flex: 1, pr: 1 }}>{c.title}</Typography>
                     <Chip label={c.active ? 'Ativa' : 'Inativa'} size="small" variant="outlined"
                       sx={{ fontSize: '0.65rem', height: 20, borderColor: c.active ? '#388E3C' : '#BDBDBD', color: c.active ? '#388E3C' : '#BDBDBD' }} />
                   </Box>
+                  {c.campaignType === 'wheel' && (
+                    <Chip icon={<CasinoOutlinedIcon sx={{ fontSize: '14px !important' }} />} label="Roleta de Prêmios" size="small"
+                      sx={{ fontSize: '0.62rem', height: 20, mb: 1, backgroundColor: '#8E24AA15', color: '#8E24AA', '& .MuiChip-icon': { color: '#8E24AA' } }} />
+                  )}
                   {c.subtitle && <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.subtitle}</Typography>}
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -88,6 +103,13 @@ export default function CampanhasPage() {
                         <OpenInNewOutlinedIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
+                    {c.campaignType === 'wheel' && (
+                      <Tooltip title="Ganhadores">
+                        <IconButton size="small" onClick={() => openWinners(c)} sx={{ border: '1px solid #EDE8E8', color: '#8E24AA' }}>
+                          <EmojiEventsOutlinedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
                     <Tooltip title="Editar">
                       <IconButton size="small" onClick={() => { setSelected(c); setEditorOpen(true); }} sx={{ border: '1px solid #EDE8E8' }}>
                         <EditOutlinedIcon sx={{ fontSize: 16 }} />
@@ -105,6 +127,36 @@ export default function CampanhasPage() {
           ))}
         </Grid>
       )}
+
+      {/* Ganhadores da roleta */}
+      <Dialog open={!!winners} onClose={() => setWinners(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>Ganhadores · {winners?.campaign?.title}</DialogTitle>
+        <DialogContent>
+          {!winners?.entries?.length ? (
+            <Box sx={{ py: 4, textAlign: 'center' }}>
+              <EmojiEventsOutlinedIcon sx={{ fontSize: 40, color: '#E0D5D5' }} />
+              <Typography variant="body2" sx={{ color: '#9A9A9A', mt: 1 }}>Nenhum participante ainda.</Typography>
+            </Box>
+          ) : (
+            <>
+              <Typography variant="caption" sx={{ color: '#9A9A9A' }}>{winners.entries.length} participante(s) — cada um já virou lead no funil.</Typography>
+              <List dense>
+                {winners.entries.map((e: any) => (
+                  <ListItem key={e.id} divider sx={{ px: 0 }}
+                    secondaryAction={<Chip label={e.prizeLabel} size="small" sx={{ backgroundColor: '#8E24AA15', color: '#8E24AA', fontWeight: 600 }} />}>
+                    <ListItemText
+                      primary={e.name}
+                      secondary={[e.phone, e.email].filter(Boolean).join(' · ') + ' · ' + new Date(e.createdAt).toLocaleDateString('pt-BR')}
+                      slotProps={{ primary: { style: { fontWeight: 600, fontSize: '0.875rem' } }, secondary: { style: { fontSize: '0.75rem' } } }}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions><Button onClick={() => setWinners(null)}>Fechar</Button></DialogActions>
+      </Dialog>
 
       <CampaignEditor open={editorOpen} onClose={() => { setEditorOpen(false); setSelected(null); load(); }} campaign={selected} />
     </Box>
