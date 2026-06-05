@@ -69,7 +69,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Header */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 700, color: '#1A1A1A' }}>Dashboard</Typography>

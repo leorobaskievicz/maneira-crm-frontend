@@ -60,6 +60,37 @@ export const NAV_ITEMS: NavItem[] = NAV_SECTIONS.flatMap((s) => s.items);
 /** Itens exibidos na navegação inferior (mobile). */
 export const BOTTOM_NAV_HREFS = ['/dashboard', '/agenda', '/pacientes', '/leads', '/tarefas'];
 
+export interface SessionUser { id?: string; name?: string; email?: string; role?: string; permissions?: string[] }
+
+/** Lê o usuário logado do localStorage (client-side). */
+export function getStoredUser(): SessionUser | null {
+  if (typeof window === 'undefined') return null;
+  try { const raw = localStorage.getItem('user'); return raw ? JSON.parse(raw) : null; }
+  catch { return null; }
+}
+
+/** Admin vê tudo; demais só as rotinas liberadas (por href). */
+export function canAccess(user: SessionUser | null, href: string): boolean {
+  if (!user) return false;
+  if (user.role === 'admin') return true;
+  return (user.permissions || []).includes(href);
+}
+
+/** Seções visíveis para o usuário (remove itens sem permissão e seções vazias). */
+export function visibleSections(user: SessionUser | null): NavSection[] {
+  if (user?.role === 'admin') return NAV_SECTIONS;
+  return NAV_SECTIONS
+    .map((s) => ({ ...s, items: s.items.filter((i) => canAccess(user, i.href)) }))
+    .filter((s) => s.items.length > 0);
+}
+
+/** Primeira rotina que o usuário pode acessar (para redirecionar). */
+export function firstAllowedHref(user: SessionUser | null): string | null {
+  if (user?.role === 'admin') return '/dashboard';
+  const item = NAV_ITEMS.find((i) => canAccess(user, i.href));
+  return item?.href ?? null;
+}
+
 /** Resolve o item de navegação correspondente a um pathname. */
 export function findNavItem(pathname: string): NavItem | undefined {
   // match mais específico primeiro (maior href que casa com o início do path)

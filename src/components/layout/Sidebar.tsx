@@ -1,11 +1,12 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Box, List, ListItemButton, ListItemIcon, ListItemText, Typography,
 } from '@mui/material';
 import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import LogoutOutlinedIcon from '@mui/icons-material/LogoutOutlined';
-import { NAV_SECTIONS, findNavItem } from './nav';
+import { findNavItem, getStoredUser, visibleSections, type SessionUser } from './nav';
 
 export const DRAWER_WIDTH = 248;
 
@@ -13,6 +14,9 @@ export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const activeHref = findNavItem(pathname)?.href;
+  const [user, setUser] = useState<SessionUser | null>(null);
+  useEffect(() => { setUser(getStoredUser()); }, []);
+  const sections = visibleSections(user);
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -60,7 +64,7 @@ export function Sidebar() {
 
       {/* Navegação agrupada */}
       <Box sx={{ flex: 1, overflowY: 'auto', px: 1.25, py: 1, '&::-webkit-scrollbar': { width: 4 }, '&::-webkit-scrollbar-thumb': { background: '#333', borderRadius: 2 } }}>
-        {NAV_SECTIONS.map((section) => (
+        {sections.map((section) => (
           <Box key={section.heading} sx={{ mb: 1.5 }}>
             <Typography
               sx={{

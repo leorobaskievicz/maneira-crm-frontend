@@ -42,7 +42,7 @@ export default function EstoquePage() {
   const lowCount = products.filter(isLow).length;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>Estoque</Typography>

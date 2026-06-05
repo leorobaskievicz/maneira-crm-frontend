@@ -1,16 +1,23 @@
 'use client';
+import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Paper, BottomNavigation, BottomNavigationAction } from '@mui/material';
-import { NAV_ITEMS, BOTTOM_NAV_HREFS } from './nav';
+import { NAV_ITEMS, BOTTOM_NAV_HREFS, getStoredUser, canAccess, type SessionUser } from './nav';
 
-const tabs = BOTTOM_NAV_HREFS
+const allTabs = BOTTOM_NAV_HREFS
   .map((href) => NAV_ITEMS.find((i) => i.href === href))
   .filter((i): i is NonNullable<typeof i> => Boolean(i));
 
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
+  const [user, setUser] = useState<SessionUser | null>(null);
+  useEffect(() => { setUser(getStoredUser()); }, []);
+
+  const tabs = allTabs.filter((t) => canAccess(user, t.href));
   const current = tabs.findIndex((t) => pathname === t.href || pathname.startsWith(t.href + '/'));
+
+  if (tabs.length === 0) return null;
 
   return (
     <Paper

@@ -37,6 +37,7 @@ export default function PatientsPage() {
   const [form, setForm] = useState(emptyForm);
   const [profileTab, setProfileTab] = useState(0);
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [finances, setFinances] = useState<any[]>([]);
 
   const load = useCallback(async (q = '') => {
     const res = await api.get('/patients', { params: q ? { search: q } : {} });
@@ -61,8 +62,11 @@ export default function PatientsPage() {
     setSelected(p);
     setProfileTab(0);
     setProfileOpen(true);
+    setFinances([]);
     const res = await api.get(`/appointments/patient/${p.id}`).catch(() => ({ data: [] }));
     setAppointments(res.data);
+    const fin = await api.get(`/financial/patient/${p.id}`).catch(() => ({ data: [] }));
+    setFinances(fin.data);
   };
 
   const save = async () => {
@@ -74,13 +78,15 @@ export default function PatientsPage() {
     } catch { toast.error('Erro ao salvar'); }
   };
 
-  const totalGasto = appointments.filter(a => a.status === 'completed').reduce((s, a) => s + Number(a.procedure?.price || 0), 0);
+  const paymentLabels: Record<string, string> = { cash: 'Dinheiro', pix: 'PIX', debit: 'Débito', credit: 'Crédito', installment: 'Parcelado' };
+  const totalGasto = finances.reduce((s, f) => s + Number(f.received ?? f.amount ?? 0), 0);
+  const totalPendente = finances.reduce((s, f) => s + Math.max(0, Number(f.amount || 0) - Number(f.received ?? f.amount ?? 0)), 0);
   const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
   const filtered = patients.filter(p => !search || p.name?.toLowerCase().includes(search.toLowerCase()) || p.phone?.includes(search));
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
@@ -233,21 +239,42 @@ export default function PatientsPage() {
             <Box sx={{ p: 2.5 }}>
               <Card sx={{ backgroundColor: '#A0585A', mb: 2 }}>
                 <CardContent sx={{ textAlign: 'center', '&:last-child': { pb: '16px !important' } }}>
-                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total investido</Typography>
+                  <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Total recebido</Typography>
                   <Typography sx={{ fontSize: '2rem', fontWeight: 700, color: '#fff', mt: 0.5 }}>{fmt(totalGasto)}</Typography>
                   <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.6)' }}>
-                    {appointments.filter(a => a.status === 'completed').length} procedimentos concluídos
+                    {finances.length} {finances.length === 1 ? 'venda' : 'vendas'}
+                    {totalPendente > 0.001 ? ` · ${fmt(totalPendente)} a receber` : ''}
                   </Typography>
                 </CardContent>
               </Card>
-              <List disablePadding>
-                {appointments.filter(a => a.status === 'completed').map((a, i, arr) => (
-                  <ListItem key={a.id} divider={i < arr.length - 1} sx={{ px: 0 }}>
-                    <ListItemText primary={a.procedure?.name} secondary={format(parseISO(a.scheduledAt), 'dd/MM/yyyy', { locale: ptBR })} />
-                    <Typography sx={{ fontWeight: 600 }}>{fmt(a.procedure?.price || 0)}</Typography>
-                  </ListItem>
-                ))}
-              </List>
+              {finances.length === 0 ? (
+                <Box sx={{ py: 4, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">Nenhum lançamento financeiro</Typography>
+                </Box>
+              ) : (
+                <List disablePadding>
+                  {finances.map((f, i) => {
+                    const amount = Number(f.amount || 0);
+                    const rec = Number(f.received ?? amount);
+                    const pend = Math.max(0, amount - rec);
+                    return (
+                      <ListItem key={f.id} divider={i < finances.length - 1} sx={{ px: 0, alignItems: 'flex-start' }}>
+                        <ListItemText
+                          primary={f.description || (f.items?.map((it: any) => it.name).join(', ')) || 'Atendimento'}
+                          secondary={`${format(parseISO(f.createdAt), 'dd/MM/yyyy', { locale: ptBR })} · ${paymentLabels[f.paymentMethod] || f.paymentMethod}`}
+                          slotProps={{ primary: { style: { fontSize: '0.875rem', fontWeight: 600 } }, secondary: { style: { fontSize: '0.78rem' } } }}
+                        />
+                        <Box sx={{ textAlign: 'right', flexShrink: 0, ml: 1 }}>
+                          <Typography sx={{ fontWeight: 700 }}>{fmt(amount)}</Typography>
+                          {pend > 0.001
+                            ? <Typography sx={{ fontSize: '0.7rem', color: '#D32F2F' }}>{fmt(pend)} pendente</Typography>
+                            : <Typography sx={{ fontSize: '0.7rem', color: '#388E3C' }}>pago</Typography>}
+                        </Box>
+                      </ListItem>
+                    );
+                  })}
+                </List>
+              )}
             </Box>
           )}
         </DialogContent>

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, Select, MenuItem, FormControl, InputLabel, IconButton, Menu,
-  ListItemIcon, ListItemText, Chip, Tooltip,
+  ListItemIcon, ListItemText, Chip, Tooltip, Avatar,
 } from '@mui/material';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -13,6 +13,9 @@ import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import PersonAddAlt1OutlinedIcon from '@mui/icons-material/PersonAddAlt1Outlined';
+import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
+import MailOutlineIcon from '@mui/icons-material/EmailOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { toast } from 'sonner';
 import api from '@/lib/api';
@@ -53,6 +56,20 @@ function sumColumnValue(col: any): number {
   return (col.cards || []).reduce((s: number, c: any) => s + Number(c.value || 0), 0);
 }
 
+function formatDate(dateStr?: string): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+const TAG_PALETTE = ['#A0585A', '#1976D2', '#388E3C', '#F57C00', '#7B1FA2', '#0097A7', '#5D4037'];
+function tagColor(tag: string): string {
+  let h = 0;
+  for (let i = 0; i < tag.length; i++) h = (h * 31 + tag.charCodeAt(i)) % TAG_PALETTE.length;
+  return TAG_PALETTE[h];
+}
+
 function daysAgo(dateStr?: string): number | null {
   if (!dateStr) return null;
   const d = new Date(dateStr).getTime();
@@ -74,7 +91,7 @@ export function KanbanBoard({ board, setBoard, reload, variant }: KanbanBoardPro
   const [colDlg, setColDlg] = useState(false);
   const [cardDlg, setCardDlg] = useState(false);
   const [colForm, setColForm] = useState<any>({ id: '', name: '', color: '#A0585A' });
-  const [cardForm, setCardForm] = useState<any>({ id: '', columnId: '', title: '', description: '', phone: '', email: '', procedureInterest: '', source: 'other', value: '' });
+  const [cardForm, setCardForm] = useState<any>({ id: '', columnId: '', title: '', description: '', phone: '', email: '', procedureInterest: '', source: 'other', value: '', tags: [] as string[] });
   const [converting, setConverting] = useState(false);
 
   // ---- Colunas ----
@@ -103,8 +120,8 @@ export function KanbanBoard({ board, setBoard, reload, variant }: KanbanBoardPro
   // ---- Cards ----
   const openCardDlg = (colId: string, card?: any) => {
     setCardForm(card
-      ? { ...card, columnId: colId, description: card.description || '', phone: card.phone || '', email: card.email || '', procedureInterest: card.procedureInterest || '', source: card.source || 'other', value: card.value ?? '' }
-      : { id: '', columnId: colId, title: '', description: '', phone: '', email: '', procedureInterest: '', source: 'other', value: '' });
+      ? { ...card, columnId: colId, description: card.description || '', phone: card.phone || '', email: card.email || '', procedureInterest: card.procedureInterest || '', source: card.source || 'other', value: card.value ?? '', tags: card.tags || [] }
+      : { id: '', columnId: colId, title: '', description: '', phone: '', email: '', procedureInterest: '', source: 'other', value: '', tags: [] });
     setCardDlg(true);
   };
 
@@ -209,21 +226,34 @@ export function KanbanBoard({ board, setBoard, reload, variant }: KanbanBoardPro
   return (
     <>
       {isLeads && (
-        <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, backgroundColor: '#fff', border: '1px solid #EDE8E8', borderRadius: '12px', px: 2, py: 1.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#A0585A' }} />
-            <Box>
-              <Typography sx={{ fontSize: '0.66rem', color: '#9A9A9A', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Leads no funil</Typography>
-              <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: '#1A1A1A', lineHeight: 1.1 }}>{totalLeads}</Typography>
-            </Box>
+        <Box sx={{ display: 'flex', gap: 1.25, mb: 2 }}>
+          {/* Total geral */}
+          <Box sx={{ flex: 1, minWidth: 0, borderRadius: '12px', p: 1.5, color: '#fff', background: 'linear-gradient(135deg, #C4807F, #A0585A)', boxShadow: '0 4px 12px rgba(160,88,90,0.25)' }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', opacity: 0.85 }}>Funil total</Typography>
+            <Typography sx={{ fontSize: '1.35rem', fontWeight: 800, lineHeight: 1.1, mt: 0.25 }}>{totalLeads} <Typography component="span" sx={{ fontSize: '0.7rem', fontWeight: 600, opacity: 0.85 }}>leads</Typography></Typography>
+            <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, mt: 0.25 }}>{formatBRL(totalPipeline)}</Typography>
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, backgroundColor: '#fff', border: '1px solid #EDE8E8', borderRadius: '12px', px: 2, py: 1.25 }}>
-            <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#388E3C' }} />
-            <Box>
-              <Typography sx={{ fontSize: '0.66rem', color: '#9A9A9A', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Em negociação</Typography>
-              <Typography sx={{ fontSize: '1.05rem', fontWeight: 700, color: '#1A1A1A', lineHeight: 1.1 }}>{formatBRL(totalPipeline)}</Typography>
-            </Box>
-          </Box>
+
+          {/* Um card por etapa */}
+          {board.columns.map((col: any) => {
+            const cc = col.color || '#A0585A';
+            const count = col.cards?.length || 0;
+            const val = sumColumnValue(col);
+            const pct = totalLeads ? Math.round((count / totalLeads) * 100) : 0;
+            return (
+              <Box key={col.id} sx={{ flex: 1, minWidth: 0, backgroundColor: '#fff', border: '1px solid #EDE8E8', borderRadius: '12px', p: 1.5, borderTop: `3px solid ${cc}` }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                  <Box sx={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cc, flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#8A7E7E', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{col.name}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.5, mt: 0.5 }}>
+                  <Typography sx={{ fontSize: '1.3rem', fontWeight: 800, color: '#1A1A1A', lineHeight: 1 }}>{count}</Typography>
+                  <Typography sx={{ fontSize: '0.66rem', color: '#B0A8A8', fontWeight: 600 }}>{pct}%</Typography>
+                </Box>
+                <Typography sx={{ fontSize: '0.78rem', fontWeight: 700, color: val > 0 ? '#2E7D32' : '#C9BFBF', mt: 0.25 }}>{formatBRL(val)}</Typography>
+              </Box>
+            );
+          })}
         </Box>
       )}
 
@@ -245,25 +275,28 @@ export function KanbanBoard({ board, setBoard, reload, variant }: KanbanBoardPro
                         transition: 'box-shadow .15s',
                       }}>
                       {/* Header da coluna */}
-                      <Box sx={{ px: 1.25, py: 1.25, borderTop: `3px solid ${col.color || '#A0585A'}`, borderRadius: '12px 12px 0 0' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      {(() => { const cc = col.color || '#A0585A'; return (
+                      <Box sx={{ px: 1.25, pt: 1.25, pb: 1, borderRadius: '12px 12px 0 0', background: `linear-gradient(180deg, ${cc}1A, transparent)`, borderTop: `3px solid ${cc}` }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
                           <Box {...providedCol.dragHandleProps} sx={{ display: 'flex', alignItems: 'center', color: '#B8AEAE', cursor: 'grab', '&:active': { cursor: 'grabbing' }, '&:hover': { color: '#7A6F6F' } }}>
                             <DragIndicatorIcon sx={{ fontSize: 18 }} />
                           </Box>
-                          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#3A3232', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <Box sx={{ width: 9, height: 9, borderRadius: '50%', backgroundColor: cc, flexShrink: 0 }} />
+                          <Typography sx={{ fontWeight: 700, fontSize: '0.82rem', color: '#3A3232', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
                             {col.name}
                           </Typography>
-                          <Box sx={{ minWidth: 22, height: 20, px: 0.75, borderRadius: '10px', backgroundColor: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: '#8A7E7E' }}>{col.cards?.length || 0}</Typography>
+                          <Box sx={{ minWidth: 22, height: 20, px: 0.85, borderRadius: '10px', backgroundColor: `${cc}26`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: cc }}>{col.cards?.length || 0}</Typography>
                           </Box>
                           <ColMenu col={col} onEdit={() => openColDlg(col)} onDelete={() => deleteColumn(col.id)} />
                         </Box>
                         {isLeads && sumColumnValue(col) > 0 && (
-                          <Typography sx={{ fontSize: '0.7rem', fontWeight: 600, color: '#7A6F6F', mt: 0.5, pl: 3 }}>
-                            {formatBRL(sumColumnValue(col))}
-                          </Typography>
+                          <Box sx={{ display: 'inline-flex', alignItems: 'center', mt: 0.75, ml: 3.1, px: 0.85, py: 0.15, borderRadius: '6px', backgroundColor: 'rgba(56,142,60,0.12)' }}>
+                            <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#2E7D32' }}>{formatBRL(sumColumnValue(col))}</Typography>
+                          </Box>
                         )}
                       </Box>
+                      ); })()}
 
                       {/* Cards */}
                       <Droppable droppableId={col.id} type="CARD">
@@ -381,6 +414,7 @@ export function KanbanBoard({ board, setBoard, reload, variant }: KanbanBoardPro
             </>
           )}
           <TextField label={variant === 'leads' ? 'Observações' : 'Descrição / Notas'} value={cardForm.description} onChange={(e) => setCardForm((f: any) => ({ ...f, description: e.target.value }))} fullWidth multiline rows={variant === 'leads' ? 3 : 4} />
+          <TagsField tags={cardForm.tags || []} onChange={(tags) => setCardForm((f: any) => ({ ...f, tags }))} />
         </DialogContent>
         <DialogActions>
           {cardForm.id && <Button color="error" onClick={() => deleteCard(cardForm.id)} sx={{ mr: 'auto' }}>Excluir</Button>}
@@ -416,6 +450,44 @@ function ColMenu({ col, onEdit, onDelete }: { col: any; onEdit: () => void; onDe
   );
 }
 
+function TagChips({ tags }: { tags?: string[] }) {
+  if (!tags?.length) return null;
+  return (
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 1 }}>
+      {tags.map((t, i) => {
+        const c = tagColor(t);
+        return (
+          <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 0.4, px: 0.75, py: 0.2, borderRadius: '6px', backgroundColor: `${c}14` }}>
+            <Box sx={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: c }} />
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: c }}>{t}</Typography>
+          </Box>
+        );
+      })}
+    </Box>
+  );
+}
+
+function CardFooter({ card, aging }: { card: any; aging?: boolean }) {
+  const created = formatDate(card.createdAt);
+  const days = daysAgo(card.createdAt);
+  const agingColor = days == null ? '#B0A8A8' : days >= 10 ? '#D32F2F' : days >= 5 ? '#F57C00' : '#B0A8A8';
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1, pt: 0.75, borderTop: '1px dashed #EFE9E9' }}>
+      {created && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, color: '#B0A8A8' }}>
+          <AccessTimeOutlinedIcon sx={{ fontSize: 12 }} />
+          <Typography sx={{ fontSize: '0.62rem', fontWeight: 600 }}>{created}</Typography>
+        </Box>
+      )}
+      {aging && days != null && days >= 3 && (
+        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: agingColor }}>
+          {days === 1 ? '1 dia parado' : `${days} dias parado`}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
 function TaskCardBody({ card }: { card: any }) {
   return (
     <>
@@ -425,20 +497,27 @@ function TaskCardBody({ card }: { card: any }) {
           {card.description}
         </Typography>
       )}
+      <TagChips tags={card.tags} />
+      <CardFooter card={card} />
     </>
   );
 }
 
 function LeadCardBody({ card }: { card: any }) {
   const source = SOURCE_MAP[card.source] || SOURCE_MAP.other;
-  const days = daysAgo(card.createdAt);
   const wa = whatsappLink(card.phone);
-  const agingColor = days == null ? '#9A9A9A' : days >= 10 ? '#D32F2F' : days >= 5 ? '#F57C00' : '#9A9A9A';
+  const initial = (card.title || '?').trim().charAt(0).toUpperCase();
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-        <Typography sx={{ fontWeight: 600, fontSize: '0.84rem', color: '#1A1A1A', wordBreak: 'break-word', flex: 1 }}>{card.title}</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+        <Avatar sx={{ width: 30, height: 30, fontSize: '0.78rem', fontWeight: 700, bgcolor: source.color, flexShrink: 0 }}>{initial}</Avatar>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.84rem', color: '#1A1A1A', wordBreak: 'break-word', lineHeight: 1.25 }}>{card.title}</Typography>
+          {card.procedureInterest && (
+            <Typography sx={{ fontSize: '0.72rem', color: '#A0585A', fontWeight: 600 }}>{card.procedureInterest}</Typography>
+          )}
+        </Box>
         {wa && (
           <Tooltip title="Abrir no WhatsApp">
             <IconButton size="small" component="a" href={wa} target="_blank" rel="noopener noreferrer"
@@ -450,28 +529,68 @@ function LeadCardBody({ card }: { card: any }) {
         )}
       </Box>
 
-      {card.procedureInterest && (
-        <Typography sx={{ fontSize: '0.74rem', color: '#A0585A', fontWeight: 600, mt: 0.5 }}>{card.procedureInterest}</Typography>
-      )}
-      {card.phone && (
-        <Typography variant="caption" sx={{ color: '#9A9A9A', display: 'block', mt: 0.25 }}>{card.phone}</Typography>
-      )}
-      {Number(card.value) > 0 && (
-        <Typography sx={{ fontSize: '0.78rem', color: '#388E3C', fontWeight: 700, mt: 0.5 }}>{formatBRL(Number(card.value))}</Typography>
+      {(card.phone || card.email) && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, mt: 0.75, color: '#9A9A9A' }}>
+          {card.phone && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+              <PhoneOutlinedIcon sx={{ fontSize: 12 }} />
+              <Typography sx={{ fontSize: '0.7rem' }}>{card.phone}</Typography>
+            </Box>
+          )}
+          {card.email && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, minWidth: 0 }}>
+              <MailOutlineIcon sx={{ fontSize: 12 }} />
+              <Typography sx={{ fontSize: '0.7rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{card.email}</Typography>
+            </Box>
+          )}
+        </Box>
       )}
 
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+      {Number(card.value) > 0 && (
+        <Typography sx={{ fontSize: '0.82rem', color: '#388E3C', fontWeight: 800, mt: 0.75 }}>{formatBRL(Number(card.value))}</Typography>
+      )}
+
+      <Box sx={{ mt: 0.75 }}>
         <Chip label={source.label} size="small"
           sx={{ height: 18, fontSize: '0.62rem', fontWeight: 600, color: source.color, backgroundColor: `${source.color}1A`, '& .MuiChip-label': { px: 0.75 } }} />
-        {days != null && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, color: agingColor }}>
-            <AccessTimeOutlinedIcon sx={{ fontSize: 12 }} />
-            <Typography sx={{ fontSize: '0.62rem', fontWeight: 600 }}>
-              {days === 0 ? 'Hoje' : days === 1 ? '1 dia' : `${days} dias`}
-            </Typography>
-          </Box>
-        )}
       </Box>
+
+      <TagChips tags={card.tags} />
+      <CardFooter card={card} aging />
     </>
+  );
+}
+
+function TagsField({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
+  const [input, setInput] = useState('');
+  const add = () => {
+    const v = input.trim();
+    if (v && !tags.includes(v)) onChange([...tags, v]);
+    setInput('');
+  };
+  return (
+    <Box>
+      <TextField
+        label="Etiquetas (tags)"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(); } }}
+        onBlur={add}
+        fullWidth
+        placeholder="Digite e tecle Enter (ex.: VIP, retorno, urgente)"
+      />
+      {tags.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mt: 1 }}>
+          {tags.map((t) => {
+            const c = tagColor(t);
+            return (
+              <Chip key={t} label={t} size="small" onDelete={() => onChange(tags.filter((x) => x !== t))}
+                deleteIcon={<CloseIcon />}
+                sx={{ fontWeight: 600, color: c, backgroundColor: `${c}1A`, '& .MuiChip-deleteIcon': { color: c, fontSize: 14 } }} />
+            );
+          })}
+        </Box>
+      )}
+    </Box>
   );
 }

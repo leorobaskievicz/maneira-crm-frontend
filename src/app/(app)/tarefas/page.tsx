@@ -41,7 +41,7 @@ export default function TarefasPage() {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1200 }}>
+    <Box sx={{ p: { xs: 2, md: 3 } }}>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', mb: 3 }}>
         <Button variant="contained" startIcon={<AddOutlinedIcon />} sx={{ backgroundColor: '#A0585A' }} onClick={() => { setBoardForm({ id: '', name: '', description: '' }); setBoardDlg(true); }}>
           Novo Quadro
