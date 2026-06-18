@@ -13,8 +13,14 @@ import { buildStoryArt } from './storyArt';
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 interface QuizResult {
-  key: string; title: string; description: string;
-  prizeLabel: string; prizeDescription?: string; image?: string; emoji?: string;
+  mode?: 'profile' | 'score';
+  // perfil
+  key?: string; title?: string; description?: string; image?: string;
+  // acertos
+  correct?: number; total?: number; hasPrize?: boolean;
+  noPrizeTitle?: string; noPrizeMessage?: string;
+  // comum
+  prizeLabel?: string; prizeDescription?: string; emoji?: string;
 }
 
 export function QuizLanding({ campaign, slug }: { campaign: any; slug: string }) {
@@ -77,9 +83,18 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
     }
   };
 
+  const isScore = result?.mode === 'score';
+  const hasPrize = isScore ? !!result?.hasPrize : !!result;
+  // Título exibido na tela de resultado e na arte
+  const headline = isScore ? `Você acertou ${result?.correct} de ${result?.total}!` : (result?.title || '');
+  const artTitle = isScore ? `Acertei ${result?.correct} de ${result?.total}!` : (result?.title || '');
+
   const scheduleWhatsApp = () => {
     const base = cfg.scheduleMessage || 'Quero agendar minha avaliação e resgatar meu prêmio';
-    const msg = encodeURIComponent(`${base} — Meu resultado: ${result?.title} • Prêmio: ${result?.prizeLabel} (quiz ${campaign.title})`);
+    const detail = isScore
+      ? `Acertei ${result?.correct}/${result?.total}${hasPrize ? ` • Prêmio: ${result?.prizeLabel}` : ''}`
+      : `Meu resultado: ${result?.title}${result?.prizeLabel ? ` • Prêmio: ${result?.prizeLabel}` : ''}`;
+    const msg = encodeURIComponent(`${base} — ${detail} (quiz ${campaign.title})`);
     window.open(`https://wa.me/55${onlyDigits(campaign.whatsappNumber)}?text=${msg}`, '_blank');
   };
 
@@ -89,9 +104,10 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
       apiBase: API,
       logo: cfg.logo,
       name: form.name.trim(),
-      resultTitle: result?.title || '',
+      topLabel: isScore ? 'EU FIZ O QUIZ DA CLÍNICA' : 'EU FIZ O QUIZ E DESCOBRI',
+      resultTitle: artTitle,
       resultEmoji: result?.emoji,
-      prizeLabel: result?.prizeLabel || '',
+      prizeLabel: hasPrize ? (result?.prizeLabel || '') : '',
       clinicName: 'Clínica Caroline Maneira',
       handle: cfg.shareHashtag || '@carolinemaneira',
       primaryColor: color,
@@ -233,44 +249,47 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
           <Box sx={{ textAlign: 'center', py: 1 }}>
             <Box sx={{ fontSize: '3.2rem', lineHeight: 1, mb: 1 }}>{result.emoji || '🎉'}</Box>
             <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.12em', mb: 0.5 }}>
-              {cfg.successTitle || 'Seu resultado'}
+              {isScore ? (hasPrize ? 'Você ganhou!' : (result.noPrizeTitle || 'Resultado')) : (cfg.successTitle || 'Seu resultado')}
             </Typography>
             <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.7rem', mb: 1.5, lineHeight: 1.15 }}>
-              {result.title}
+              {headline}
             </Typography>
             {result.image && (
               <Box component="img" src={result.image} alt="" sx={{ width: '100%', maxHeight: 200, objectFit: 'cover', borderRadius: '14px', mb: 2 }} />
             )}
-            {result.description && (
+            {/* Descrição (perfil) ou mensagem de sem-prêmio (acertos) */}
+            {(isScore ? (!hasPrize && result.noPrizeMessage) : result.description) && (
               <Typography sx={{ color: 'rgba(255,255,255,0.78)', fontSize: '0.95rem', mb: 2.5, maxWidth: 400, mx: 'auto' }}>
-                {result.description}
+                {isScore ? result.noPrizeMessage : result.description}
               </Typography>
             )}
 
-            {/* Prêmio */}
-            <Box sx={{ display: 'inline-block', px: 3, py: 1.75, borderRadius: '14px', border: `2px dashed ${color}`, backgroundColor: 'rgba(255,255,255,0.06)', mb: 3 }}>
-              <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 0.5 }}>
-                Você ganhou
-              </Typography>
-              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.35rem' }}>{result.prizeLabel}</Typography>
-              {result.prizeDescription && (
-                <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', mt: 0.5 }}>{result.prizeDescription}</Typography>
-              )}
-            </Box>
+            {/* Prêmio (somente quando há prêmio) */}
+            {hasPrize && (
+              <Box sx={{ display: 'inline-block', px: 3, py: 1.75, borderRadius: '14px', border: `2px dashed ${color}`, backgroundColor: 'rgba(255,255,255,0.06)', mb: 3 }}>
+                <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 0.5 }}>
+                  Você ganhou
+                </Typography>
+                <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.35rem' }}>{result.prizeLabel}</Typography>
+                {result.prizeDescription && (
+                  <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', mt: 0.5 }}>{result.prizeDescription}</Typography>
+                )}
+              </Box>
+            )}
 
             {/* Compartilhar nos Stories */}
             <Button fullWidth variant="contained" size="large" startIcon={sharing ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : <IosShareOutlinedIcon />} onClick={shareStory} disabled={sharing}
-              sx={{ background: 'linear-gradient(95deg, #F58529, #DD2A7B 50%, #8134AF)', '&:hover': { filter: 'brightness(0.95)' }, py: 1.7, fontSize: '1rem', fontWeight: 800, mb: 1.5 }}>
+              sx={{ background: 'linear-gradient(95deg, #F58529, #DD2A7B 50%, #8134AF)', '&:hover': { filter: 'brightness(0.95)' }, py: 1.7, fontSize: '1rem', fontWeight: 800, mb: 1.5, mt: hasPrize ? 0 : 1 }}>
               {sharing ? 'Gerando arte…' : 'Postar resultado nos Stories'}
             </Button>
 
             {/* Agendar / resgatar */}
             <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={scheduleWhatsApp}
               sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.6, fontSize: '1rem', fontWeight: 800 }}>
-              Agendar e resgatar meu prêmio
+              {hasPrize ? 'Agendar e resgatar meu prêmio' : 'Agendar minha avaliação'}
             </Button>
             <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem', mt: 2 }}>
-              Apresente esta tela na clínica para validar seu prêmio.
+              {hasPrize ? 'Apresente esta tela na clínica para validar seu prêmio.' : 'Fale com a gente e conheça nossas condições especiais.'}
             </Typography>
           </Box>
         )}

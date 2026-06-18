@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Grid, FormControl, InputLabel, Select, MenuItem, Box, Typography, Chip,
-  ToggleButtonGroup, ToggleButton, Switch, FormControlLabel, IconButton, Divider, Tooltip,
+  ToggleButtonGroup, ToggleButton, Switch, FormControlLabel, IconButton, Divider, Tooltip, Radio,
 } from '@mui/material';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
@@ -40,8 +40,9 @@ const defaultWheel = () => ({
   ],
 });
 
-// Template inicial do Quiz de Perfil — exemplo "Qual seu perfil de skincare?"
+// Template inicial do Quiz — exemplo "Qual seu perfil de skincare?"
 const defaultQuiz = () => ({
+  mode: 'profile', // 'profile' (perfil mais escolhido) | 'score' (prêmio por nº de acertos)
   theme: '',
   logo: '',
   backgroundImage: '',
@@ -58,23 +59,31 @@ const defaultQuiz = () => ({
   scheduleMessage: 'Quero agendar minha avaliação e resgatar meu prêmio',
   shareCaption: 'Acabei de descobrir meu perfil no quiz da Clínica Caroline Maneira! 💆‍♀️✨',
   shareHashtag: '@carolinemaneira',
+  // Modo 'score': faixas de prêmio por acertos (ordenadas por minCorrect crescente)
+  noPrizeTitle: 'Quase lá! 😅',
+  noPrizeMessage: 'Você não atingiu a pontuação do prêmio, mas pode agendar sua avaliação com condição especial!',
+  prizeTiers: [
+    { minCorrect: 6, emoji: '🎉', label: '10% OFF', description: '' },
+    { minCorrect: 8, emoji: '🔥', label: '20% OFF', description: '' },
+    { minCorrect: 10, emoji: '🏆', label: 'R$ 200 de desconto', description: 'Pontuação máxima!' },
+  ],
   results: [
     { key: 'r1', title: 'Pele Radiante', emoji: '✨', description: 'Sua pele pede manutenção e viço! Tratamentos de hidratação profunda vão te deixar ainda mais bonita.', prizeLabel: '20% OFF em Skinbooster', prizeDescription: '' },
     { key: 'r2', title: 'Pele Renovada', emoji: '🌸', description: 'Chegou a hora de renovar! Limpeza de pele e microagulhamento são ideais para o seu momento.', prizeLabel: 'Limpeza de Pele com 30% OFF', prizeDescription: '' },
     { key: 'r3', title: 'Pele Firme', emoji: '💎', description: 'Foco em firmeza e colágeno! Bioestimuladores e HIFU vão potencializar seus resultados.', prizeLabel: 'Avaliação + Bônus exclusivo', prizeDescription: '' },
   ],
   questions: [
-    { text: 'Qual sua maior preocupação hoje?', image: '', options: [
+    { text: 'Qual sua maior preocupação hoje?', image: '', correctIndex: 0, options: [
       { label: 'Hidratação e viço', resultKey: 'r1' },
       { label: 'Manchas e textura', resultKey: 'r2' },
       { label: 'Flacidez e firmeza', resultKey: 'r3' },
     ] },
-    { text: 'Como você descreve sua rotina de cuidados?', image: '', options: [
+    { text: 'Como você descreve sua rotina de cuidados?', image: '', correctIndex: 0, options: [
       { label: 'Básica, quero começar', resultKey: 'r1' },
       { label: 'Faço, mas quero melhorar', resultKey: 'r2' },
       { label: 'Cuido bastante e quero resultado', resultKey: 'r3' },
     ] },
-    { text: 'Qual resultado você mais deseja?', image: '', options: [
+    { text: 'Qual resultado você mais deseja?', image: '', correctIndex: 0, options: [
       { label: 'Pele iluminada', resultKey: 'r1' },
       { label: 'Pele uniforme', resultKey: 'r2' },
       { label: 'Efeito lifting', resultKey: 'r3' },
@@ -154,7 +163,22 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
   const removeQuestion = (qi: number) => { if (quiz.questions.length <= 1) return toast.error('O quiz precisa de ao menos 1 pergunta'); setQuiz({ questions: quiz.questions.filter((_: any, idx: number) => idx !== qi) }); };
   const updateOption = (qi: number, oi: number, patch: any) => updateQuestion(qi, { options: quiz.questions[qi].options.map((o: any, idx: number) => idx === oi ? { ...o, ...patch } : o) });
   const addOption = (qi: number) => updateQuestion(qi, { options: [...quiz.questions[qi].options, { label: 'Nova opção', resultKey: quiz.results[0]?.key }] });
-  const removeOption = (qi: number, oi: number) => { if (quiz.questions[qi].options.length <= 2) return toast.error('Cada pergunta precisa de ao menos 2 opções'); updateQuestion(qi, { options: quiz.questions[qi].options.filter((_: any, idx: number) => idx !== oi) }); };
+  const removeOption = (qi: number, oi: number) => {
+    if (quiz.questions[qi].options.length <= 2) return toast.error('Cada pergunta precisa de ao menos 2 opções');
+    const q = quiz.questions[qi];
+    // ao remover, reajusta o índice da resposta correta (modo acertos)
+    let correctIndex = q.correctIndex ?? 0;
+    if (oi === correctIndex) correctIndex = 0;
+    else if (oi < correctIndex) correctIndex -= 1;
+    updateQuestion(qi, { options: q.options.filter((_: any, idx: number) => idx !== oi), correctIndex });
+  };
+  const setCorrect = (qi: number, oi: number) => updateQuestion(qi, { correctIndex: oi });
+
+  // Faixas de prêmio (modo 'score')
+  const tiers = quiz.prizeTiers || [];
+  const updateTier = (i: number, patch: any) => setQuiz({ prizeTiers: tiers.map((t: any, idx: number) => idx === i ? { ...t, ...patch } : t) });
+  const addTier = () => setQuiz({ prizeTiers: [...tiers, { minCorrect: quiz.questions.length, emoji: '🎁', label: 'Prêmio', description: '' }] });
+  const removeTier = (i: number) => setQuiz({ prizeTiers: tiers.filter((_: any, idx: number) => idx !== i) });
 
   const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -185,9 +209,13 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
     if (!form.title) { toast.error('Título obrigatório'); return; }
     if (isWheel && wheel.slots.length < 2) { toast.error('Configure ao menos 2 prêmios'); return; }
     if (isQuiz) {
-      if (quiz.results.length < 1) { toast.error('Configure ao menos 1 resultado'); return; }
       if (quiz.questions.length < 1) { toast.error('Configure ao menos 1 pergunta'); return; }
       if (quiz.questions.some((q: any) => !q.options || q.options.length < 2)) { toast.error('Cada pergunta precisa de ao menos 2 opções'); return; }
+      if (quiz.mode === 'score') {
+        if (!quiz.prizeTiers || quiz.prizeTiers.length < 1) { toast.error('Configure ao menos 1 faixa de prêmio'); return; }
+      } else {
+        if (quiz.results.length < 1) { toast.error('Configure ao menos 1 resultado'); return; }
+      }
     }
     const payload = { ...form, wheelConfig: isWheel ? wheel : null, quizConfig: isQuiz ? quiz : null };
     try {
@@ -340,6 +368,21 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                 <>
                   <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>CONFIGURAÇÃO DO QUIZ</Typography></Divider>
 
+                  {/* Modo de resultado */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 0.75, color: '#6B6B6B', fontWeight: 600 }}>Como o prêmio é definido</Typography>
+                    <ToggleButtonGroup exclusive fullWidth size="small" value={quiz.mode || 'profile'}
+                      onChange={(_, v) => v && setQuiz({ mode: v })}>
+                      <ToggleButton value="profile" sx={{ textTransform: 'none', py: 1 }}>Por perfil (mais escolhido)</ToggleButton>
+                      <ToggleButton value="score" sx={{ textTransform: 'none', py: 1 }}>Por nº de acertos</ToggleButton>
+                    </ToggleButtonGroup>
+                    <Typography variant="caption" sx={{ color: '#9A9A9A', mt: 0.5, display: 'block' }}>
+                      {quiz.mode === 'score'
+                        ? 'Cada pergunta tem uma resposta certa. O prêmio sai por faixa de acertos.'
+                        : 'Cada resposta aponta para um perfil. O perfil mais escolhido vence.'}
+                    </Typography>
+                  </Box>
+
                   {/* Tela inicial */}
                   <TextField label="Tema (opcional, ex: Skincare)" fullWidth size="small" value={quiz.theme} onChange={e => setQuiz({ theme: e.target.value })} />
                   <TextField label="Título da tela inicial" fullWidth size="small" value={quiz.introTitle} onChange={e => setQuiz({ introTitle: e.target.value })} />
@@ -409,23 +452,53 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                     label={<Typography variant="body2">Permitir apenas 1 resposta por WhatsApp</Typography>}
                   />
 
-                  {/* Resultados / perfis */}
-                  <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>RESULTADOS E PRÊMIOS</Typography></Divider>
-                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Resultados ({quiz.results.length})</Typography>
-                    <Button size="small" startIcon={<AddOutlinedIcon />} onClick={addResult} sx={{ color: '#A0585A' }}>Adicionar</Button>
-                  </Box>
-                  {quiz.results.map((r: any, i: number) => (
-                    <Box key={r.key} sx={{ border: '1px solid #EDE8E8', borderRadius: '8px', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <TextField size="small" label="Emoji" value={r.emoji || ''} onChange={e => updateResult(i, { emoji: e.target.value })} sx={{ width: 80 }} />
-                        <TextField size="small" label="Título do resultado" value={r.title} onChange={e => updateResult(i, { title: e.target.value })} sx={{ flex: 1 }} />
-                        <IconButton size="small" onClick={() => removeResult(i)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                  {/* Modo PERFIL — resultados / perfis */}
+                  {quiz.mode !== 'score' && (
+                    <>
+                      <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>RESULTADOS E PRÊMIOS</Typography></Divider>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>Resultados ({quiz.results.length})</Typography>
+                        <Button size="small" startIcon={<AddOutlinedIcon />} onClick={addResult} sx={{ color: '#A0585A' }}>Adicionar</Button>
                       </Box>
-                      <TextField size="small" label="Descrição / recomendação" multiline rows={2} value={r.description} onChange={e => updateResult(i, { description: e.target.value })} fullWidth />
-                      <TextField size="small" label="Prêmio deste resultado" value={r.prizeLabel} onChange={e => updateResult(i, { prizeLabel: e.target.value })} fullWidth />
-                    </Box>
-                  ))}
+                      {quiz.results.map((r: any, i: number) => (
+                        <Box key={r.key} sx={{ border: '1px solid #EDE8E8', borderRadius: '8px', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <TextField size="small" label="Emoji" value={r.emoji || ''} onChange={e => updateResult(i, { emoji: e.target.value })} sx={{ width: 80 }} />
+                            <TextField size="small" label="Título do resultado" value={r.title} onChange={e => updateResult(i, { title: e.target.value })} sx={{ flex: 1 }} />
+                            <IconButton size="small" onClick={() => removeResult(i)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                          </Box>
+                          <TextField size="small" label="Descrição / recomendação" multiline rows={2} value={r.description} onChange={e => updateResult(i, { description: e.target.value })} fullWidth />
+                          <TextField size="small" label="Prêmio deste resultado" value={r.prizeLabel} onChange={e => updateResult(i, { prizeLabel: e.target.value })} fullWidth />
+                        </Box>
+                      ))}
+                    </>
+                  )}
+
+                  {/* Modo ACERTOS — faixas de prêmio por pontuação */}
+                  {quiz.mode === 'score' && (
+                    <>
+                      <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>FAIXAS DE PRÊMIO (POR ACERTOS)</Typography></Divider>
+                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 700 }}>Faixas ({tiers.length}) · {quiz.questions.length} perguntas no total</Typography>
+                        <Button size="small" startIcon={<AddOutlinedIcon />} onClick={addTier} sx={{ color: '#A0585A' }}>Adicionar</Button>
+                      </Box>
+                      {tiers.map((t: any, i: number) => (
+                        <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1, border: '1px solid #EDE8E8', borderRadius: '8px', p: 1 }}>
+                          <TextField size="small" type="number" label="Acertos ≥" value={t.minCorrect}
+                            onChange={e => updateTier(i, { minCorrect: Math.max(0, Number(e.target.value)) })}
+                            sx={{ width: 96 }} slotProps={{ htmlInput: { min: 0, max: quiz.questions.length } }} />
+                          <TextField size="small" label="Emoji" value={t.emoji || ''} onChange={e => updateTier(i, { emoji: e.target.value })} sx={{ width: 72 }} />
+                          <TextField size="small" label="Prêmio" value={t.label} onChange={e => updateTier(i, { label: e.target.value })} sx={{ flex: 1 }} />
+                          <IconButton size="small" onClick={() => removeTier(i)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                        </Box>
+                      ))}
+                      <Typography variant="caption" sx={{ color: '#9A9A9A', display: 'block' }}>
+                        Quem fizer menos acertos que a menor faixa não ganha prêmio (mostra a mensagem abaixo). Ex.: faixas em 6, 8 e 10 → 0–5 não ganha, 6–7 a 1ª, 8–9 a 2ª, 10 a 3ª.
+                      </Typography>
+                      <TextField label="Título quando não ganha" fullWidth size="small" value={quiz.noPrizeTitle} onChange={e => setQuiz({ noPrizeTitle: e.target.value })} />
+                      <TextField label="Mensagem quando não ganha" fullWidth size="small" multiline rows={2} value={quiz.noPrizeMessage} onChange={e => setQuiz({ noPrizeMessage: e.target.value })} />
+                    </>
+                  )}
 
                   {/* Perguntas */}
                   <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>PERGUNTAS</Typography></Divider>
@@ -441,22 +514,31 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                         <IconButton size="small" onClick={() => removeQuestion(qi)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
                       </Box>
                       {q.options.map((o: any, oi: number) => (
-                        <Box key={oi} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 2 }}>
+                        <Box key={oi} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: quiz.mode === 'score' ? 0 : 2 }}>
+                          {quiz.mode === 'score' && (
+                            <Tooltip title="Marcar como resposta correta">
+                              <Radio size="small" checked={(q.correctIndex ?? 0) === oi} onChange={() => setCorrect(qi, oi)} sx={{ color: '#43A047', '&.Mui-checked': { color: '#43A047' } }} />
+                            </Tooltip>
+                          )}
                           <TextField size="small" placeholder="Opção" value={o.label} onChange={e => updateOption(qi, oi, { label: e.target.value })} sx={{ flex: 1 }} />
-                          <FormControl size="small" sx={{ width: 170 }}>
-                            <InputLabel>Aponta para</InputLabel>
-                            <Select label="Aponta para" value={o.resultKey || ''} onChange={e => updateOption(qi, oi, { resultKey: e.target.value })}>
-                              {quiz.results.map((r: any) => <MenuItem key={r.key} value={r.key}>{r.emoji} {r.title}</MenuItem>)}
-                            </Select>
-                          </FormControl>
+                          {quiz.mode !== 'score' && (
+                            <FormControl size="small" sx={{ width: 170 }}>
+                              <InputLabel>Aponta para</InputLabel>
+                              <Select label="Aponta para" value={o.resultKey || ''} onChange={e => updateOption(qi, oi, { resultKey: e.target.value })}>
+                                {quiz.results.map((r: any) => <MenuItem key={r.key} value={r.key}>{r.emoji} {r.title}</MenuItem>)}
+                              </Select>
+                            </FormControl>
+                          )}
                           <IconButton size="small" onClick={() => removeOption(qi, oi)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
                         </Box>
                       ))}
-                      <Button size="small" startIcon={<AddOutlinedIcon />} onClick={() => addOption(qi)} sx={{ color: '#A0585A', alignSelf: 'flex-start', ml: 2 }}>Opção</Button>
+                      <Button size="small" startIcon={<AddOutlinedIcon />} onClick={() => addOption(qi)} sx={{ color: '#A0585A', alignSelf: 'flex-start', ml: quiz.mode === 'score' ? 0 : 2 }}>Opção</Button>
                     </Box>
                   ))}
                   <Typography variant="caption" sx={{ color: '#9A9A9A', display: 'block' }}>
-                    Cada opção aponta para um resultado. O resultado mais escolhido nas respostas é o que o lead recebe (junto com o prêmio).
+                    {quiz.mode === 'score'
+                      ? 'Marque a bolinha verde na resposta correta de cada pergunta. O total de acertos define a faixa de prêmio.'
+                      : 'Cada opção aponta para um resultado. O resultado mais escolhido nas respostas é o que o lead recebe (junto com o prêmio).'}
                   </Typography>
 
                   {/* Mensagens / compartilhamento */}

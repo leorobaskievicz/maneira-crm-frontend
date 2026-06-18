@@ -6,6 +6,7 @@ interface ArtParams {
   apiBase: string;
   logo?: string;
   name: string;
+  topLabel?: string;
   resultTitle: string;
   resultEmoji?: string;
   prizeLabel: string;
@@ -104,7 +105,7 @@ export async function buildStoryArt(p: ArtParams): Promise<Blob> {
   // Etiqueta superior
   ctx.fillStyle = 'rgba(255,255,255,0.75)';
   ctx.font = '600 34px Inter, Arial, sans-serif';
-  ctx.fillText('EU FIZ O QUIZ E DESCOBRI', W / 2, topY);
+  ctx.fillText(p.topLabel || 'EU FIZ O QUIZ E DESCOBRI', W / 2, topY);
 
   // Emoji do resultado
   let y = topY + 130;
@@ -131,34 +132,36 @@ export async function buildStoryArt(p: ArtParams): Promise<Blob> {
     ctx.fillText(p.name, W / 2, y);
   }
 
-  // Caixa do prêmio (tracejada)
-  y += 120;
-  ctx.font = '700 52px Inter, Arial, sans-serif';
-  const prizeLines = wrapLines(ctx, p.prizeLabel, W - 280);
-  const boxPadV = 50, lineH = 64;
-  const boxH = 120 + (prizeLines.length - 1) * lineH;
-  const boxW = W - 200;
-  const boxX = (W - boxW) / 2;
-  const boxY = y;
-  ctx.save();
-  ctx.setLineDash([18, 14]);
-  ctx.lineWidth = 4;
-  ctx.strokeStyle = '#ffffff';
-  ctx.fillStyle = 'rgba(255,255,255,0.10)';
-  roundRect(ctx, boxX, boxY, boxW, boxH, 36);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
+  // Caixa do prêmio (tracejada) — só quando há prêmio
+  if (p.prizeLabel && p.prizeLabel.trim()) {
+    y += 120;
+    ctx.font = '700 52px Inter, Arial, sans-serif';
+    const prizeLines = wrapLines(ctx, p.prizeLabel, W - 280);
+    const boxPadV = 50, lineH = 64;
+    const boxH = 120 + (prizeLines.length - 1) * lineH;
+    const boxW = W - 200;
+    const boxX = (W - boxW) / 2;
+    const boxY = y;
+    ctx.save();
+    ctx.setLineDash([18, 14]);
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = '#ffffff';
+    ctx.fillStyle = 'rgba(255,255,255,0.10)';
+    roundRect(ctx, boxX, boxY, boxW, boxH, 36);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
 
-  ctx.fillStyle = 'rgba(255,255,255,0.7)';
-  ctx.font = '600 30px Inter, Arial, sans-serif';
-  ctx.fillText('GANHEI', W / 2, boxY + 52);
-  ctx.fillStyle = '#ffffff';
-  ctx.font = '800 56px Inter, Arial, sans-serif';
-  let py = boxY + 52 + boxPadV;
-  for (const line of prizeLines) {
-    ctx.fillText(line, W / 2, py);
-    py += lineH;
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.font = '600 30px Inter, Arial, sans-serif';
+    ctx.fillText('GANHEI', W / 2, boxY + 52);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '800 56px Inter, Arial, sans-serif';
+    let py = boxY + 52 + boxPadV;
+    for (const line of prizeLines) {
+      ctx.fillText(line, W / 2, py);
+      py += lineH;
+    }
   }
 
   // Rodapé — nome e @ da clínica
