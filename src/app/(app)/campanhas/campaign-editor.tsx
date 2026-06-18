@@ -49,6 +49,7 @@ const defaultQuiz = () => ({
   theme: '',
   logo: '',
   backgroundImage: '',
+  storyImage: '', // imagem pronta que o lead posta nos Stories (obrigatória para resgatar o prêmio)
   secondaryColor: '#1A1A1A',
   backgroundColor: '#0d0d0d',
   ctaBgColor: '#A0585A',
@@ -599,6 +600,34 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
 
                   {/* Mensagens / compartilhamento */}
                   <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>FINAL E COMPARTILHAMENTO</Typography></Divider>
+
+                  {/* Imagem pronta para o lead postar nos Stories (obrigatória p/ resgatar o prêmio) */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 0.75, color: '#6B6B6B' }}>
+                      Imagem dos Stories (a pessoa precisa postar esta arte para resgatar o prêmio)
+                    </Typography>
+                    {quiz.storyImage ? (
+                      <Box sx={{ position: 'relative', display: 'inline-block', borderRadius: '8px', overflow: 'hidden', border: '1px solid #EDE8E8' }}>
+                        <Box component="img" src={quiz.storyImage} alt="Story" sx={{ height: 160, display: 'block' }} />
+                        <Tooltip title="Remover imagem">
+                          <IconButton size="small" onClick={() => setQuiz({ storyImage: '' })}
+                            sx={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { backgroundColor: 'rgba(0,0,0,0.75)' } }}>
+                            <DeleteOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    ) : (
+                      <Button component="label" variant="outlined" fullWidth startIcon={<CloudUploadOutlinedIcon />}
+                        sx={{ py: 1.5, borderStyle: 'dashed', borderColor: '#D9CFCF', color: '#8A7E7E', '&:hover': { borderColor: '#A0585A', color: '#A0585A' } }}>
+                        Enviar imagem do Story
+                        <input hidden type="file" accept="image/*" onChange={(e) => uploadTo(e, (url) => setQuiz({ storyImage: url }))} />
+                      </Button>
+                    )}
+                    <Typography variant="caption" sx={{ color: '#9A9A9A', mt: 0.75, display: 'block' }}>
+                      Use uma arte vertical (proporção 9:16, ex.: 1080×1920). Se ficar vazio, geramos uma arte automática com o resultado do lead.
+                    </Typography>
+                  </Box>
+
                   <TextField label="Título da tela de resultado" fullWidth size="small" value={quiz.successTitle} onChange={e => setQuiz({ successTitle: e.target.value })} />
                   <TextField label="Mensagem do WhatsApp (agendar/resgatar)" fullWidth size="small" value={quiz.scheduleMessage} onChange={e => setQuiz({ scheduleMessage: e.target.value })} />
                   <TextField label="Legenda sugerida ao compartilhar nos Stories" fullWidth size="small" multiline rows={2} value={quiz.shareCaption} onChange={e => setQuiz({ shareCaption: e.target.value })} />

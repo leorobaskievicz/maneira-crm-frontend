@@ -40,6 +40,8 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<QuizResult | null>(null);
   const [sharing, setSharing] = useState(false);
+  // Só libera o resgate do prêmio depois que a pessoa posta nos Stories
+  const [shared, setShared] = useState(false);
   const artUrlRef = useRef<string | null>(null);
 
   const bg = cfg.backgroundImage
@@ -116,28 +118,44 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
     });
   };
 
+  // Devolve a imagem que será postada: a arte configurada no painel (se houver)
+  // ou a arte gerada automaticamente com o resultado do lead.
+  const getShareBlob = async (): Promise<Blob> => {
+    if (cfg.storyImage) {
+      // Passa pelo proxy do backend para evitar bloqueio de CORS ao baixar a imagem.
+      const proxied = `${API}/public/campaigns/asset?u=${encodeURIComponent(cfg.storyImage)}`;
+      const resp = await fetch(proxied);
+      if (!resp.ok) throw new Error('Falha ao baixar a imagem do Story');
+      return await resp.blob();
+    }
+    return getArtBlob();
+  };
+
   const shareStory = async () => {
     setSharing(true);
     try {
-      const blob = await getArtBlob();
-      const file = new File([blob], 'meu-resultado.png', { type: 'image/png' });
-      const caption = cfg.shareCaption || `Fiz o quiz da Clínica Caroline Maneira e meu resultado foi: ${result?.title}! 💆‍♀️✨`;
+      const blob = await getShareBlob();
+      const file = new File([blob], 'meu-premio.png', { type: blob.type || 'image/png' });
+      const caption = cfg.shareCaption || `Fiz o quiz da Clínica Caroline Maneira e ganhei um prêmio! 💆‍♀️✨`;
       const navAny = navigator as any;
-      // Caminho ideal (mobile): folha de compartilhamento nativa → Instagram Stories
+      // Caminho ideal (mobile): folha de compartilhamento nativa → 1 toque em "Instagram Stories"
       if (navAny.canShare && navAny.canShare({ files: [file] })) {
         await navAny.share({ files: [file], text: caption });
+        setShared(true); // concluiu o compartilhamento → libera o resgate
       } else {
         // Fallback (desktop / navegadores sem Web Share de arquivos): baixa a arte e abre o Instagram
         const url = URL.createObjectURL(blob);
         artUrlRef.current = url;
         const a = document.createElement('a');
-        a.href = url; a.download = 'meu-resultado.png';
+        a.href = url; a.download = 'meu-premio.png';
         document.body.appendChild(a); a.click(); a.remove();
         toast.success('Arte baixada! Abra o Instagram e poste nos Stories 💜');
         setTimeout(() => window.open('https://www.instagram.com/', '_blank'), 600);
+        setShared(true);
       }
     } catch (e: any) {
-      if (e?.name !== 'AbortError') toast.error('Não foi possível gerar a arte agora.');
+      // Se a pessoa cancelar a folha de compartilhamento, não liberamos o prêmio.
+      if (e?.name !== 'AbortError') toast.error('Não foi possível abrir o compartilhamento agora.');
     } finally {
       setSharing(false);
     }
@@ -264,33 +282,74 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
               </Typography>
             )}
 
-            {/* Prêmio (somente quando há prêmio) */}
+            {/* Prêmio (somente quando há prêmio) — fica "bloqueado" até postar nos Stories */}
             {hasPrize && (
-              <Box sx={{ display: 'inline-block', px: 3, py: 1.75, borderRadius: '14px', border: `2px dashed ${color}`, backgroundColor: 'rgba(255,255,255,0.06)', mb: 3 }}>
+              <Box sx={{ position: 'relative', display: 'inline-block', px: 3, py: 1.75, borderRadius: '14px', border: `2px dashed ${color}`, backgroundColor: 'rgba(255,255,255,0.06)', mb: 2.5 }}>
                 <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.1em', mb: 0.5 }}>
-                  Você ganhou
+                  {shared ? 'Seu prêmio' : 'Seu prêmio (quase lá!)'}
                 </Typography>
                 <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.35rem' }}>{result.prizeLabel}</Typography>
                 {result.prizeDescription && (
                   <Typography sx={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', mt: 0.5 }}>{result.prizeDescription}</Typography>
                 )}
+                {shared && (
+                  <Typography sx={{ color: '#5BD06A', fontSize: '0.78rem', fontWeight: 700, mt: 0.75 }}>✓ Prêmio liberado!</Typography>
+                )}
               </Box>
             )}
 
-            {/* Compartilhar nos Stories */}
-            <Button fullWidth variant="contained" size="large" startIcon={sharing ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : <IosShareOutlinedIcon />} onClick={shareStory} disabled={sharing}
-              sx={{ background: 'linear-gradient(95deg, #F58529, #DD2A7B 50%, #8134AF)', '&:hover': { filter: 'brightness(0.95)' }, py: 1.7, fontSize: '1rem', fontWeight: 800, mb: 1.5, mt: hasPrize ? 0 : 1 }}>
-              {sharing ? 'Gerando arte…' : 'Postar resultado nos Stories'}
-            </Button>
+            {/* FLUXO COM PRÊMIO — força o compartilhamento antes de resgatar */}
+            {hasPrize && !shared && (
+              <>
+                {/* Chamada de ação obrigatória */}
+                <Box sx={{ borderRadius: '14px', p: 2, mb: 2, backgroundColor: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.16)' }}>
+                  <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.05rem', mb: 0.5 }}>
+                    🎁 Falta 1 passo para garantir seu prêmio!
+                  </Typography>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '0.9rem' }}>
+                    Clique no botão abaixo e poste a arte nos seus <b>Stories</b>. Sem postar, o prêmio <b>não é válido</b> 😉
+                  </Typography>
+                </Box>
 
-            {/* Agendar / resgatar */}
-            <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={scheduleWhatsApp}
-              sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.6, fontSize: '1rem', fontWeight: 800 }}>
-              {hasPrize ? 'Agendar e resgatar meu prêmio' : 'Agendar minha avaliação'}
-            </Button>
-            <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem', mt: 2 }}>
-              {hasPrize ? 'Apresente esta tela na clínica para validar seu prêmio.' : 'Fale com a gente e conheça nossas condições especiais.'}
-            </Typography>
+                <Button fullWidth variant="contained" size="large" startIcon={sharing ? <CircularProgress size={20} sx={{ color: '#fff' }} /> : <IosShareOutlinedIcon />} onClick={shareStory} disabled={sharing}
+                  sx={{ background: 'linear-gradient(95deg, #F58529, #DD2A7B 50%, #8134AF)', '&:hover': { filter: 'brightness(0.95)' }, py: 1.85, fontSize: '1.05rem', fontWeight: 800 }}>
+                  {sharing ? 'Abrindo…' : 'Postar nos Stories e garantir meu prêmio'}
+                </Button>
+                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.75rem', mt: 1.25 }}>
+                  Vai abrir o compartilhamento — toque em <b>Instagram → Stories</b> e publique. 💜
+                </Typography>
+              </>
+            )}
+
+            {/* FLUXO COM PRÊMIO — liberado após postar */}
+            {hasPrize && shared && (
+              <>
+                <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={scheduleWhatsApp}
+                  sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.7, fontSize: '1rem', fontWeight: 800 }}>
+                  Agendar e resgatar meu prêmio
+                </Button>
+                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem', mt: 1.5 }}>
+                  Apresente esta tela na clínica para validar seu prêmio.
+                </Typography>
+                <Button variant="text" size="small" startIcon={<IosShareOutlinedIcon sx={{ fontSize: 16 }} />} onClick={shareStory} disabled={sharing}
+                  sx={{ color: 'rgba(255,255,255,0.6)', mt: 1, textTransform: 'none' }}>
+                  Postar de novo
+                </Button>
+              </>
+            )}
+
+            {/* SEM PRÊMIO (modo acertos, não atingiu faixa) — sem gating */}
+            {!hasPrize && (
+              <>
+                <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={scheduleWhatsApp}
+                  sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.6, fontSize: '1rem', fontWeight: 800, mt: 1 }}>
+                  Agendar minha avaliação
+                </Button>
+                <Typography sx={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.78rem', mt: 2 }}>
+                  Fale com a gente e conheça nossas condições especiais.
+                </Typography>
+              </>
+            )}
           </Box>
         )}
 
