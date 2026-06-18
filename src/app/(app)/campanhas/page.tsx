@@ -7,6 +7,7 @@ import {
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import EmojiEventsOutlinedIcon from '@mui/icons-material/EmojiEventsOutlined';
 import CasinoOutlinedIcon from '@mui/icons-material/CasinoOutlined';
+import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined';
 import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 import CursorClickIcon from '@mui/icons-material/AdsClickOutlined';
 import ContentCopyOutlinedIcon from '@mui/icons-material/ContentCopyOutlined';
@@ -82,6 +83,10 @@ export default function CampanhasPage() {
                     <Chip icon={<CasinoOutlinedIcon sx={{ fontSize: '14px !important' }} />} label="Roleta de Prêmios" size="small"
                       sx={{ fontSize: '0.62rem', height: 20, mb: 1, backgroundColor: '#8E24AA15', color: '#8E24AA', '& .MuiChip-icon': { color: '#8E24AA' } }} />
                   )}
+                  {c.campaignType === 'quiz' && (
+                    <Chip icon={<QuizOutlinedIcon sx={{ fontSize: '14px !important' }} />} label="Quiz de Perfil" size="small"
+                      sx={{ fontSize: '0.62rem', height: 20, mb: 1, backgroundColor: '#1565C015', color: '#1565C0', '& .MuiChip-icon': { color: '#1565C0' } }} />
+                  )}
                   {c.subtitle && <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, WebkitLineClamp: 2, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{c.subtitle}</Typography>}
                   <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -103,9 +108,9 @@ export default function CampanhasPage() {
                         <OpenInNewOutlinedIcon sx={{ fontSize: 16 }} />
                       </IconButton>
                     </Tooltip>
-                    {c.campaignType === 'wheel' && (
-                      <Tooltip title="Ganhadores">
-                        <IconButton size="small" onClick={() => openWinners(c)} sx={{ border: '1px solid #EDE8E8', color: '#8E24AA' }}>
+                    {(c.campaignType === 'wheel' || c.campaignType === 'quiz') && (
+                      <Tooltip title="Participantes / ganhadores">
+                        <IconButton size="small" onClick={() => openWinners(c)} sx={{ border: '1px solid #EDE8E8', color: c.campaignType === 'quiz' ? '#1565C0' : '#8E24AA' }}>
                           <EmojiEventsOutlinedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
@@ -143,10 +148,15 @@ export default function CampanhasPage() {
               <List dense>
                 {winners.entries.map((e: any) => (
                   <ListItem key={e.id} divider sx={{ px: 0 }}
-                    secondaryAction={<Chip label={e.prizeLabel} size="small" sx={{ backgroundColor: '#8E24AA15', color: '#8E24AA', fontWeight: 600 }} />}>
+                    secondaryAction={
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 0.5 }}>
+                        {e.resultLabel && <Chip label={e.resultLabel} size="small" sx={{ backgroundColor: '#1565C015', color: '#1565C0', fontWeight: 600 }} />}
+                        {e.prizeLabel && <Chip label={e.prizeLabel} size="small" sx={{ backgroundColor: '#8E24AA15', color: '#8E24AA', fontWeight: 600 }} />}
+                      </Box>
+                    }>
                     <ListItemText
                       primary={e.name}
-                      secondary={[e.phone, e.email].filter(Boolean).join(' · ') + ' · ' + new Date(e.createdAt).toLocaleDateString('pt-BR')}
+                      secondary={[e.phone, e.email, e.instagram ? `@${e.instagram}` : null].filter(Boolean).join(' · ') + ' · ' + new Date(e.createdAt).toLocaleDateString('pt-BR')}
                       slotProps={{ primary: { style: { fontWeight: 600, fontSize: '0.875rem' } }, secondary: { style: { fontSize: '0.75rem' } } }}
                     />
                   </ListItem>

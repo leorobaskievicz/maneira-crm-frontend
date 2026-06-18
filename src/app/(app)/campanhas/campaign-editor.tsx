@@ -9,6 +9,7 @@ import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
 import CampaignOutlinedIcon from '@mui/icons-material/CampaignOutlined';
 import CasinoOutlinedIcon from '@mui/icons-material/CasinoOutlined';
+import QuizOutlinedIcon from '@mui/icons-material/QuizOutlined';
 import CloudUploadOutlinedIcon from '@mui/icons-material/CloudUploadOutlined';
 import api from '@/lib/api';
 import { toast } from 'sonner';
@@ -39,12 +40,55 @@ const defaultWheel = () => ({
   ],
 });
 
+// Template inicial do Quiz de Perfil — exemplo "Qual seu perfil de skincare?"
+const defaultQuiz = () => ({
+  theme: '',
+  logo: '',
+  backgroundImage: '',
+  secondaryColor: '#1A1A1A',
+  backgroundColor: '#0d0d0d',
+  ctaBgColor: '#A0585A',
+  ctaTextColor: '#ffffff',
+  introTitle: 'Descubra seu perfil e ganhe um prêmio 🎁',
+  introSubtitle: 'São só algumas perguntas rápidas.',
+  askInstagram: true,
+  collectAtStart: true,
+  onePerPerson: true,
+  successTitle: 'Seu resultado',
+  scheduleMessage: 'Quero agendar minha avaliação e resgatar meu prêmio',
+  shareCaption: 'Acabei de descobrir meu perfil no quiz da Clínica Caroline Maneira! 💆‍♀️✨',
+  shareHashtag: '@carolinemaneira',
+  results: [
+    { key: 'r1', title: 'Pele Radiante', emoji: '✨', description: 'Sua pele pede manutenção e viço! Tratamentos de hidratação profunda vão te deixar ainda mais bonita.', prizeLabel: '20% OFF em Skinbooster', prizeDescription: '' },
+    { key: 'r2', title: 'Pele Renovada', emoji: '🌸', description: 'Chegou a hora de renovar! Limpeza de pele e microagulhamento são ideais para o seu momento.', prizeLabel: 'Limpeza de Pele com 30% OFF', prizeDescription: '' },
+    { key: 'r3', title: 'Pele Firme', emoji: '💎', description: 'Foco em firmeza e colágeno! Bioestimuladores e HIFU vão potencializar seus resultados.', prizeLabel: 'Avaliação + Bônus exclusivo', prizeDescription: '' },
+  ],
+  questions: [
+    { text: 'Qual sua maior preocupação hoje?', image: '', options: [
+      { label: 'Hidratação e viço', resultKey: 'r1' },
+      { label: 'Manchas e textura', resultKey: 'r2' },
+      { label: 'Flacidez e firmeza', resultKey: 'r3' },
+    ] },
+    { text: 'Como você descreve sua rotina de cuidados?', image: '', options: [
+      { label: 'Básica, quero começar', resultKey: 'r1' },
+      { label: 'Faço, mas quero melhorar', resultKey: 'r2' },
+      { label: 'Cuido bastante e quero resultado', resultKey: 'r3' },
+    ] },
+    { text: 'Qual resultado você mais deseja?', image: '', options: [
+      { label: 'Pele iluminada', resultKey: 'r1' },
+      { label: 'Pele uniforme', resultKey: 'r2' },
+      { label: 'Efeito lifting', resultKey: 'r3' },
+    ] },
+  ],
+});
+
 const emptyForm = () => ({
   title: '', subtitle: '', campaignType: 'landing',
   ctaType: 'whatsapp', ctaText: 'Agendar pelo WhatsApp',
   whatsappNumber: '41984443694', primaryColor: '#A0585A',
   procedures: [] as string[], active: true,
   wheelConfig: defaultWheel(),
+  quizConfig: defaultQuiz(),
 });
 
 interface Props { open: boolean; onClose: () => void; campaign?: any; }
@@ -62,13 +106,55 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
         whatsappNumber: campaign.whatsappNumber || '41984443694', primaryColor: campaign.primaryColor || '#A0585A',
         procedures: campaign.procedures || [], active: campaign.active,
         wheelConfig: { ...defaultWheel(), ...(campaign.wheelConfig || {}) },
+        quizConfig: { ...defaultQuiz(), ...(campaign.quizConfig || {}) },
       });
     } else setForm(emptyForm());
   }, [campaign, open]);
 
   const isWheel = form.campaignType === 'wheel';
+  const isQuiz = form.campaignType === 'quiz';
+  const isLanding = form.campaignType === 'landing';
   const wheel = form.wheelConfig;
   const setWheel = (patch: any) => setForm((f) => ({ ...f, wheelConfig: { ...f.wheelConfig, ...patch } }));
+
+  const quiz = form.quizConfig;
+  const setQuiz = (patch: any) => setForm((f) => ({ ...f, quizConfig: { ...f.quizConfig, ...patch } }));
+
+  // Upload genérico que devolve a URL (usado por logo do quiz, imagem de pergunta etc.)
+  const uploadTo = async (e: React.ChangeEvent<HTMLInputElement>, apply: (url: string) => void) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadImage(file);
+      apply(url);
+      toast.success('Imagem enviada!');
+    } catch {
+      toast.error('Erro ao enviar imagem');
+    } finally {
+      e.target.value = '';
+    }
+  };
+
+  // Resultados do quiz
+  const updateResult = (i: number, patch: any) => setQuiz({ results: quiz.results.map((r: any, idx: number) => idx === i ? { ...r, ...patch } : r) });
+  const addResult = () => { const key = 'r' + (Date.now().toString(36)); setQuiz({ results: [...quiz.results, { key, title: 'Novo resultado', emoji: '🎁', description: '', prizeLabel: 'Prêmio', prizeDescription: '' }] }); };
+  const removeResult = (i: number) => {
+    if (quiz.results.length <= 1) return toast.error('O quiz precisa de ao menos 1 resultado');
+    const removed = quiz.results[i];
+    // Remove o resultado e reaponta opções órfãs para o primeiro resultado restante.
+    const results = quiz.results.filter((_: any, idx: number) => idx !== i);
+    const fallback = results[0].key;
+    const questions = quiz.questions.map((q: any) => ({ ...q, options: q.options.map((o: any) => o.resultKey === removed.key ? { ...o, resultKey: fallback } : o) }));
+    setQuiz({ results, questions });
+  };
+
+  // Perguntas do quiz
+  const updateQuestion = (qi: number, patch: any) => setQuiz({ questions: quiz.questions.map((q: any, idx: number) => idx === qi ? { ...q, ...patch } : q) });
+  const addQuestion = () => setQuiz({ questions: [...quiz.questions, { text: 'Nova pergunta', image: '', options: [{ label: 'Opção 1', resultKey: quiz.results[0]?.key }, { label: 'Opção 2', resultKey: quiz.results[Math.min(1, quiz.results.length - 1)]?.key }] }] });
+  const removeQuestion = (qi: number) => { if (quiz.questions.length <= 1) return toast.error('O quiz precisa de ao menos 1 pergunta'); setQuiz({ questions: quiz.questions.filter((_: any, idx: number) => idx !== qi) }); };
+  const updateOption = (qi: number, oi: number, patch: any) => updateQuestion(qi, { options: quiz.questions[qi].options.map((o: any, idx: number) => idx === oi ? { ...o, ...patch } : o) });
+  const addOption = (qi: number) => updateQuestion(qi, { options: [...quiz.questions[qi].options, { label: 'Nova opção', resultKey: quiz.results[0]?.key }] });
+  const removeOption = (qi: number, oi: number) => { if (quiz.questions[qi].options.length <= 2) return toast.error('Cada pergunta precisa de ao menos 2 opções'); updateQuestion(qi, { options: quiz.questions[qi].options.filter((_: any, idx: number) => idx !== oi) }); };
 
   const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -98,7 +184,12 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
   const save = async () => {
     if (!form.title) { toast.error('Título obrigatório'); return; }
     if (isWheel && wheel.slots.length < 2) { toast.error('Configure ao menos 2 prêmios'); return; }
-    const payload = { ...form, wheelConfig: isWheel ? wheel : null };
+    if (isQuiz) {
+      if (quiz.results.length < 1) { toast.error('Configure ao menos 1 resultado'); return; }
+      if (quiz.questions.length < 1) { toast.error('Configure ao menos 1 pergunta'); return; }
+      if (quiz.questions.some((q: any) => !q.options || q.options.length < 2)) { toast.error('Cada pergunta precisa de ao menos 2 opções'); return; }
+    }
+    const payload = { ...form, wheelConfig: isWheel ? wheel : null, quizConfig: isQuiz ? quiz : null };
     try {
       if (campaign) await api.put(`/campaigns/${campaign.id}`, payload);
       else await api.post('/campaigns', payload);
@@ -118,7 +209,8 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
           fullWidth sx={{ mt: 1, mb: 2 }}
         >
           <ToggleButton value="landing" sx={{ gap: 1, py: 1.25 }}><CampaignOutlinedIcon fontSize="small" /> Landing Page</ToggleButton>
-          <ToggleButton value="wheel" sx={{ gap: 1, py: 1.25 }}><CasinoOutlinedIcon fontSize="small" /> Roleta de Prêmios</ToggleButton>
+          <ToggleButton value="wheel" sx={{ gap: 1, py: 1.25 }}><CasinoOutlinedIcon fontSize="small" /> Roleta</ToggleButton>
+          <ToggleButton value="quiz" sx={{ gap: 1, py: 1.25 }}><QuizOutlinedIcon fontSize="small" /> Quiz</ToggleButton>
         </ToggleButtonGroup>
 
         <Grid container spacing={3}>
@@ -141,7 +233,7 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                 </Grid>
               </Grid>
 
-              {!isWheel && (
+              {isLanding && (
                 <>
                   <Box>
                     <FormControl fullWidth size="small" sx={{ mb: 1 }}>
@@ -244,6 +336,138 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                 </>
               )}
 
+              {isQuiz && (
+                <>
+                  <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>CONFIGURAÇÃO DO QUIZ</Typography></Divider>
+
+                  {/* Tela inicial */}
+                  <TextField label="Tema (opcional, ex: Skincare)" fullWidth size="small" value={quiz.theme} onChange={e => setQuiz({ theme: e.target.value })} />
+                  <TextField label="Título da tela inicial" fullWidth size="small" value={quiz.introTitle} onChange={e => setQuiz({ introTitle: e.target.value })} />
+                  <TextField label="Subtítulo da tela inicial" fullWidth size="small" value={quiz.introSubtitle} onChange={e => setQuiz({ introSubtitle: e.target.value })} />
+
+                  {/* Logo para a arte de Stories */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 0.75, color: '#6B6B6B' }}>Logo da clínica (aparece na arte dos Stories)</Typography>
+                    {quiz.logo ? (
+                      <Box sx={{ position: 'relative', display: 'inline-block', borderRadius: '8px', overflow: 'hidden', border: '1px solid #EDE8E8', backgroundColor: '#222', p: 1 }}>
+                        <Box component="img" src={quiz.logo} alt="Logo" sx={{ height: 64, display: 'block' }} />
+                        <Tooltip title="Remover logo">
+                          <IconButton size="small" onClick={() => setQuiz({ logo: '' })}
+                            sx={{ position: 'absolute', top: 2, right: 2, backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { backgroundColor: 'rgba(0,0,0,0.75)' } }}>
+                            <DeleteOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    ) : (
+                      <Button component="label" variant="outlined" fullWidth startIcon={<CloudUploadOutlinedIcon />}
+                        sx={{ py: 1.5, borderStyle: 'dashed', borderColor: '#D9CFCF', color: '#8A7E7E', '&:hover': { borderColor: '#A0585A', color: '#A0585A' } }}>
+                        Enviar logo
+                        <input hidden type="file" accept="image/*" onChange={(e) => uploadTo(e, (url) => setQuiz({ logo: url }))} />
+                      </Button>
+                    )}
+                  </Box>
+
+                  {/* Imagem de fundo */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 0.75, color: '#6B6B6B' }}>Imagem de fundo (opcional)</Typography>
+                    {quiz.backgroundImage ? (
+                      <Box sx={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', border: '1px solid #EDE8E8' }}>
+                        <Box component="img" src={quiz.backgroundImage} alt="Fundo" sx={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+                        <Tooltip title="Remover imagem">
+                          <IconButton size="small" onClick={() => setQuiz({ backgroundImage: '' })}
+                            sx={{ position: 'absolute', top: 6, right: 6, backgroundColor: 'rgba(0,0,0,0.55)', color: '#fff', '&:hover': { backgroundColor: 'rgba(0,0,0,0.75)' } }}>
+                            <DeleteOutlinedIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    ) : (
+                      <Button component="label" variant="outlined" fullWidth startIcon={<CloudUploadOutlinedIcon />}
+                        sx={{ py: 1.5, borderStyle: 'dashed', borderColor: '#D9CFCF', color: '#8A7E7E', '&:hover': { borderColor: '#A0585A', color: '#A0585A' } }}>
+                        Selecionar imagem
+                        <input hidden type="file" accept="image/*" onChange={(e) => uploadTo(e, (url) => setQuiz({ backgroundImage: url }))} />
+                      </Button>
+                    )}
+                  </Box>
+
+                  {/* Cores */}
+                  <Box>
+                    <Typography variant="body2" sx={{ mb: 1, color: '#6B6B6B', fontWeight: 600 }}>Cores</Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                      <ColorBox label="Secundária" value={quiz.secondaryColor} onChange={(v) => setQuiz({ secondaryColor: v })} />
+                      <ColorBox label="Fundo" value={quiz.backgroundColor} onChange={(v) => setQuiz({ backgroundColor: v })} />
+                      <ColorBox label="CTA · fundo" value={quiz.ctaBgColor} onChange={(v) => setQuiz({ ctaBgColor: v })} />
+                      <ColorBox label="CTA · texto" value={quiz.ctaTextColor} onChange={(v) => setQuiz({ ctaTextColor: v })} />
+                    </Box>
+                  </Box>
+
+                  <FormControlLabel
+                    control={<Switch checked={!!quiz.askInstagram} onChange={e => setQuiz({ askInstagram: e.target.checked })} />}
+                    label={<Typography variant="body2">Pedir @ do Instagram (opcional, ajuda a repostar o lead)</Typography>}
+                  />
+                  <FormControlLabel
+                    control={<Switch checked={!!quiz.onePerPerson} onChange={e => setQuiz({ onePerPerson: e.target.checked })} />}
+                    label={<Typography variant="body2">Permitir apenas 1 resposta por WhatsApp</Typography>}
+                  />
+
+                  {/* Resultados / perfis */}
+                  <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>RESULTADOS E PRÊMIOS</Typography></Divider>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Resultados ({quiz.results.length})</Typography>
+                    <Button size="small" startIcon={<AddOutlinedIcon />} onClick={addResult} sx={{ color: '#A0585A' }}>Adicionar</Button>
+                  </Box>
+                  {quiz.results.map((r: any, i: number) => (
+                    <Box key={r.key} sx={{ border: '1px solid #EDE8E8', borderRadius: '8px', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <TextField size="small" label="Emoji" value={r.emoji || ''} onChange={e => updateResult(i, { emoji: e.target.value })} sx={{ width: 80 }} />
+                        <TextField size="small" label="Título do resultado" value={r.title} onChange={e => updateResult(i, { title: e.target.value })} sx={{ flex: 1 }} />
+                        <IconButton size="small" onClick={() => removeResult(i)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                      </Box>
+                      <TextField size="small" label="Descrição / recomendação" multiline rows={2} value={r.description} onChange={e => updateResult(i, { description: e.target.value })} fullWidth />
+                      <TextField size="small" label="Prêmio deste resultado" value={r.prizeLabel} onChange={e => updateResult(i, { prizeLabel: e.target.value })} fullWidth />
+                    </Box>
+                  ))}
+
+                  {/* Perguntas */}
+                  <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>PERGUNTAS</Typography></Divider>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>Perguntas ({quiz.questions.length})</Typography>
+                    <Button size="small" startIcon={<AddOutlinedIcon />} onClick={addQuestion} sx={{ color: '#A0585A' }}>Adicionar</Button>
+                  </Box>
+                  {quiz.questions.map((q: any, qi: number) => (
+                    <Box key={qi} sx={{ border: '1px solid #EDE8E8', borderRadius: '8px', p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: '#A0585A', flexShrink: 0 }}>#{qi + 1}</Typography>
+                        <TextField size="small" label="Pergunta" value={q.text} onChange={e => updateQuestion(qi, { text: e.target.value })} sx={{ flex: 1 }} />
+                        <IconButton size="small" onClick={() => removeQuestion(qi)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                      </Box>
+                      {q.options.map((o: any, oi: number) => (
+                        <Box key={oi} sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 2 }}>
+                          <TextField size="small" placeholder="Opção" value={o.label} onChange={e => updateOption(qi, oi, { label: e.target.value })} sx={{ flex: 1 }} />
+                          <FormControl size="small" sx={{ width: 170 }}>
+                            <InputLabel>Aponta para</InputLabel>
+                            <Select label="Aponta para" value={o.resultKey || ''} onChange={e => updateOption(qi, oi, { resultKey: e.target.value })}>
+                              {quiz.results.map((r: any) => <MenuItem key={r.key} value={r.key}>{r.emoji} {r.title}</MenuItem>)}
+                            </Select>
+                          </FormControl>
+                          <IconButton size="small" onClick={() => removeOption(qi, oi)} sx={{ color: '#D32F2F' }}><DeleteOutlinedIcon fontSize="small" /></IconButton>
+                        </Box>
+                      ))}
+                      <Button size="small" startIcon={<AddOutlinedIcon />} onClick={() => addOption(qi)} sx={{ color: '#A0585A', alignSelf: 'flex-start', ml: 2 }}>Opção</Button>
+                    </Box>
+                  ))}
+                  <Typography variant="caption" sx={{ color: '#9A9A9A', display: 'block' }}>
+                    Cada opção aponta para um resultado. O resultado mais escolhido nas respostas é o que o lead recebe (junto com o prêmio).
+                  </Typography>
+
+                  {/* Mensagens / compartilhamento */}
+                  <Divider textAlign="left"><Typography variant="caption" sx={{ color: '#9A9A9A', fontWeight: 700 }}>FINAL E COMPARTILHAMENTO</Typography></Divider>
+                  <TextField label="Título da tela de resultado" fullWidth size="small" value={quiz.successTitle} onChange={e => setQuiz({ successTitle: e.target.value })} />
+                  <TextField label="Mensagem do WhatsApp (agendar/resgatar)" fullWidth size="small" value={quiz.scheduleMessage} onChange={e => setQuiz({ scheduleMessage: e.target.value })} />
+                  <TextField label="Legenda sugerida ao compartilhar nos Stories" fullWidth size="small" multiline rows={2} value={quiz.shareCaption} onChange={e => setQuiz({ shareCaption: e.target.value })} />
+                  <TextField label="@ da clínica (aparece na arte)" fullWidth size="small" value={quiz.shareHashtag} onChange={e => setQuiz({ shareHashtag: e.target.value })} />
+                </>
+              )}
+
               <FormControlLabel
                 control={<Switch checked={form.active} onChange={e => setForm(f => ({ ...f, active: e.target.checked }))} />}
                 label={<Typography variant="body2">Campanha ativa</Typography>}
@@ -266,6 +490,30 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                 <Box sx={{ mt: 2, py: 1, borderRadius: '8px', backgroundColor: wheel.ctaBgColor }}>
                   <Typography sx={{ color: wheel.ctaTextColor, fontWeight: 800, fontSize: '0.85rem' }}>🎯 GIRAR A ROLETA</Typography>
                 </Box>
+              </Box>
+            ) : isQuiz ? (
+              <Box sx={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid #EDE8E8', p: 2.5, textAlign: 'center',
+                background: quiz.backgroundImage
+                  ? `linear-gradient(180deg, ${quiz.backgroundColor}D9, ${quiz.backgroundColor}F2), url(${quiz.backgroundImage})`
+                  : `linear-gradient(165deg, ${form.primaryColor} 0%, ${quiz.secondaryColor} 55%, ${quiz.backgroundColor} 100%)`,
+                backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                {quiz.logo && <Box component="img" src={quiz.logo} alt="logo" sx={{ height: 40, mb: 1.5, mx: 'auto', display: 'block' }} />}
+                {quiz.theme && <Typography sx={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.12em' }}>{quiz.theme}</Typography>}
+                <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: '1.05rem', mb: 1 }}>{form.title || 'Título do quiz'}</Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.75)', fontSize: '0.78rem', mb: 2 }}>{quiz.introTitle}</Typography>
+                <Box sx={{ textAlign: 'left', display: 'flex', flexDirection: 'column', gap: 0.75, mb: 2 }}>
+                  {(quiz.questions[0]?.options || []).slice(0, 3).map((o: any, i: number) => (
+                    <Box key={i} sx={{ px: 1.5, py: 1, borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)' }}>
+                      <Typography sx={{ color: '#fff', fontSize: '0.78rem' }}>{o.label}</Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Box sx={{ py: 1, borderRadius: '8px', backgroundColor: quiz.ctaBgColor }}>
+                  <Typography sx={{ color: quiz.ctaTextColor, fontWeight: 800, fontSize: '0.85rem' }}>Começar o quiz</Typography>
+                </Box>
+                <Typography sx={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.62rem', mt: 1.5 }}>
+                  {quiz.questions.length} pergunta(s) · {quiz.results.length} resultado(s) · botão de Stories no final
+                </Typography>
               </Box>
             ) : (
               <Box sx={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #EDE8E8', backgroundColor: '#111' }}>

@@ -12,6 +12,7 @@ import AutoAwesomeOutlinedIcon from '@mui/icons-material/AutoAwesomeOutlined';
 import { toast } from 'sonner';
 import { onlyDigits } from '@/lib/masks';
 import { WheelLanding } from './WheelLanding';
+import { QuizLanding } from './QuizLanding';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api';
 
@@ -68,6 +69,11 @@ export default function LandingPage() {
   // Roleta de Prêmios — fluxo de 3 passos
   if (campaign.campaignType === 'wheel') {
     return <WheelLanding campaign={campaign} slug={slug} />;
+  }
+
+  // Quiz de Perfil — coleta dados, perguntas e resultado com prêmio + Stories
+  if (campaign.campaignType === 'quiz') {
+    return <QuizLanding campaign={campaign} slug={slug} />;
   }
 
   const color = campaign.primaryColor || '#A0585A';
