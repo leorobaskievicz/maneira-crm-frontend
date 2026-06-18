@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   Grid, FormControl, InputLabel, Select, MenuItem, Box, Typography, Chip,
-  ToggleButtonGroup, ToggleButton, Switch, FormControlLabel, IconButton, Divider, Tooltip, Radio,
+  ToggleButtonGroup, ToggleButton, Switch, FormControlLabel, IconButton, Divider, Tooltip, Radio, Alert,
 } from '@mui/material';
 import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
 import AddOutlinedIcon from '@mui/icons-material/AddOutlined';
@@ -16,6 +16,9 @@ import { toast } from 'sonner';
 import { MaskedTextField } from '@/components/form/MaskedTextField';
 import { PrizeWheel } from '@/components/PrizeWheel';
 import { uploadImage } from '@/lib/upload';
+
+// Chave do rascunho de criação salvo no navegador (autosave da modal "Nova Campanha")
+const DRAFT_KEY = 'maneira-crm:campaign-draft';
 
 const PROCEDURES = ['Toxina Botulínica','Preenchimento Facial','Limpeza de Pele','Skinbooster','Bioestimulador de Colágeno','Microagulhamento','HIFU Facial','Fios de Sustentação','Radiofrequência','PEIM','HIFU Corporal','Corrente Russa','Depilação a Laser','Ledterapia','Intradermoterapia'];
 const SLOT_PALETTE = ['#E53935', '#1E88E5', '#43A047', '#FB8C00', '#8E24AA', '#00ACC1', '#FDD835', '#6D4C41'];
@@ -105,9 +108,24 @@ interface Props { open: boolean; onClose: () => void; campaign?: any; }
 export function CampaignEditor({ open, onClose, campaign }: Props) {
   const [form, setForm] = useState(emptyForm());
   const [uploadingBg, setUploadingBg] = useState(false);
+  // Sinaliza que um rascunho não salvo foi recuperado (mostra o aviso no topo da modal)
+  const [draftRestored, setDraftRestored] = useState(false);
+
+  // Apaga o rascunho persistido no navegador.
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT_KEY); } catch {} };
+
+  // Botão "Limpar": zera o formulário e descarta o rascunho.
+  const handleClear = () => {
+    setForm(emptyForm());
+    clearDraft();
+    setDraftRestored(false);
+  };
 
   useEffect(() => {
+    if (!open) return;
     if (campaign) {
+      // Edição: sempre carrega da campanha (a modal de edição não usa rascunho).
+      setDraftRestored(false);
       setForm({
         title: campaign.title, subtitle: campaign.subtitle || '',
         campaignType: campaign.campaignType || 'landing',
@@ -117,8 +135,38 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
         wheelConfig: { ...defaultWheel(), ...(campaign.wheelConfig || {}) },
         quizConfig: { ...defaultQuiz(), ...(campaign.quizConfig || {}) },
       });
-    } else setForm(emptyForm());
+      return;
+    }
+    // Criação: tenta recuperar um rascunho salvo de uma sessão anterior.
+    let draft: any = null;
+    try { const raw = localStorage.getItem(DRAFT_KEY); if (raw) draft = JSON.parse(raw); } catch {}
+    if (draft && typeof draft === 'object') {
+      // Mescla com os defaults para tolerar mudanças de schema do rascunho antigo.
+      setForm({
+        ...emptyForm(), ...draft,
+        wheelConfig: { ...defaultWheel(), ...(draft.wheelConfig || {}) },
+        quizConfig: { ...defaultQuiz(), ...(draft.quizConfig || {}) },
+      });
+      setDraftRestored(true);
+    } else {
+      setForm(emptyForm());
+      setDraftRestored(false);
+    }
   }, [campaign, open]);
+
+  // Autosave: grava o rascunho à medida que o usuário escreve (apenas na criação).
+  // Debounce de 400ms; se o formulário voltar ao estado inicial, remove o rascunho.
+  useEffect(() => {
+    if (!open || campaign) return;
+    const id = setTimeout(() => {
+      try {
+        const isPristine = JSON.stringify(form) === JSON.stringify(emptyForm());
+        if (isPristine) localStorage.removeItem(DRAFT_KEY);
+        else localStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+      } catch {}
+    }, 400);
+    return () => clearTimeout(id);
+  }, [form, open, campaign]);
 
   const isWheel = form.campaignType === 'wheel';
   const isQuiz = form.campaignType === 'quiz';
@@ -221,6 +269,8 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
     try {
       if (campaign) await api.put(`/campaigns/${campaign.id}`, payload);
       else await api.post('/campaigns', payload);
+      clearDraft(); // sucesso: descarta o rascunho salvo
+      setDraftRestored(false);
       toast.success(campaign ? 'Campanha atualizada!' : 'Campanha criada!');
       onClose();
     } catch { toast.error('Erro ao salvar'); }
@@ -230,6 +280,12 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>{campaign ? 'Editar Campanha' : 'Nova Campanha'}</DialogTitle>
       <DialogContent>
+        {draftRestored && !campaign && (
+          <Alert severity="info" sx={{ mb: 1.5, mt: 0.5 }}
+            action={<Button color="inherit" size="small" onClick={handleClear}>Descartar</Button>}>
+            Recuperamos um rascunho não salvo — você pode continuar de onde parou.
+          </Alert>
+        )}
         {/* Tipo de campanha */}
         <ToggleButtonGroup
           exclusive value={form.campaignType}
@@ -621,6 +677,9 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
         </Grid>
       </DialogContent>
       <DialogActions>
+        {!campaign && (
+          <Button onClick={handleClear} sx={{ color: '#9A7E7E', mr: 'auto' }}>Limpar</Button>
+        )}
         <Button onClick={onClose}>Cancelar</Button>
         <Button variant="contained" onClick={save} sx={{ backgroundColor: '#A0585A' }}>
           {campaign ? 'Salvar alterações' : 'Criar campanha'}
