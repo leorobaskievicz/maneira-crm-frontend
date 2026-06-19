@@ -40,7 +40,7 @@ export default function CampanhasPage() {
   };
 
   const copyLink = (slug: string) => {
-    navigator.clipboard.writeText(`https://maneira.tecworks.com.br/p/${slug}`);
+    navigator.clipboard.writeText(`https://crm.carolinemaneira.com.br/p/${slug}`);
     toast.success('Link copiado!');
   };
 
