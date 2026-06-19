@@ -44,7 +44,14 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
   const [shared, setShared] = useState(false);
   // true quando o WhatsApp já havia participado (back devolve o 1º resultado)
   const [repeated, setRepeated] = useState(false);
+  // true no iOS após copiar a arte + abrir o Instagram (mostra "cole a figurinha")
+  const [igPasteHint, setIgPasteHint] = useState(false);
   const artUrlRef = useRef<string | null>(null);
+
+  // iOS tem o recurso nativo de "colar figurinha" a partir da área de transferência.
+  const isIOS = typeof navigator !== 'undefined' &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && (navigator as any).maxTouchPoints > 1));
 
   const bg = cfg.backgroundImage
     ? `linear-gradient(180deg, ${background}D9, ${background}F2), url(${cfg.backgroundImage})`
@@ -136,28 +143,61 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
     return getArtBlob();
   };
 
+  // Copia a arte (PNG) para a área de transferência. No Safari/iOS é obrigatório
+  // passar uma Promise<Blob> ao ClipboardItem para preservar o "gesto do usuário".
+  const copyArtToClipboard = async (): Promise<boolean> => {
+    try {
+      const ClipItem = (window as any).ClipboardItem;
+      if (!navigator.clipboard?.write || !ClipItem) return false;
+      const pngPromise = getShareBlob().then((b) =>
+        b.type === 'image/png' ? b : new Blob([b], { type: 'image/png' }),
+      );
+      await navigator.clipboard.write([new ClipItem({ 'image/png': pngPromise })]);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  // Caminho universal: folha de compartilhamento nativa (imagem anexada) → Instagram Stories,
+  // com fallback de download + abrir o Instagram no desktop.
+  const webShare = async () => {
+    const blob = await getShareBlob();
+    const file = new File([blob], 'meu-premio.png', { type: blob.type || 'image/png' });
+    const caption = cfg.shareCaption || `Fiz o quiz da Clínica Caroline Maneira e ganhei um prêmio! 💆‍♀️✨`;
+    const navAny = navigator as any;
+    if (navAny.canShare && navAny.canShare({ files: [file] })) {
+      await navAny.share({ files: [file], text: caption });
+    } else {
+      const url = URL.createObjectURL(blob);
+      artUrlRef.current = url;
+      const a = document.createElement('a');
+      a.href = url; a.download = 'meu-premio.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      toast.success('Arte baixada! Abra o Instagram e poste nos Stories 💜');
+      setTimeout(() => window.open('https://www.instagram.com/', '_blank'), 600);
+    }
+  };
+
   const shareStory = async () => {
     setSharing(true);
     try {
-      const blob = await getShareBlob();
-      const file = new File([blob], 'meu-premio.png', { type: blob.type || 'image/png' });
-      const caption = cfg.shareCaption || `Fiz o quiz da Clínica Caroline Maneira e ganhei um prêmio! 💆‍♀️✨`;
-      const navAny = navigator as any;
-      // Caminho ideal (mobile): folha de compartilhamento nativa → 1 toque em "Instagram Stories"
-      if (navAny.canShare && navAny.canShare({ files: [file] })) {
-        await navAny.share({ files: [file], text: caption });
-        setShared(true); // concluiu o compartilhamento → libera o resgate
-      } else {
-        // Fallback (desktop / navegadores sem Web Share de arquivos): baixa a arte e abre o Instagram
-        const url = URL.createObjectURL(blob);
-        artUrlRef.current = url;
-        const a = document.createElement('a');
-        a.href = url; a.download = 'meu-premio.png';
-        document.body.appendChild(a); a.click(); a.remove();
-        toast.success('Arte baixada! Abra o Instagram e poste nos Stories 💜');
-        setTimeout(() => window.open('https://www.instagram.com/', '_blank'), 600);
-        setShared(true);
+      // 🚀 iOS: copia a arte e abre direto o Instagram. O app detecta a imagem
+      // na área de transferência e oferece "Adicionar figurinha" (1 toque cola a arte).
+      if (isIOS) {
+        const copied = await copyArtToClipboard();
+        if (copied) {
+          setShared(true);
+          setIgPasteHint(true);
+          toast.success('Arte copiada! Toque em "Adicionar figurinha" no Instagram 💜');
+          window.location.href = 'instagram://story-camera';
+          return;
+        }
+        // se o clipboard falhar, cai no Web Share abaixo
       }
+      // Android / desktop / fallback: folha de compartilhamento nativa
+      await webShare();
+      setShared(true); // concluiu o compartilhamento → libera o resgate
     } catch (e: any) {
       // Se a pessoa cancelar a folha de compartilhamento, não liberamos o prêmio.
       if (e?.name !== 'AbortError') toast.error('Não foi possível abrir o compartilhamento agora.');
@@ -336,6 +376,16 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
             {/* FLUXO COM PRÊMIO — liberado após postar */}
             {hasPrize && shared && (
               <>
+                {igPasteHint && (
+                  <Box sx={{ borderRadius: '14px', p: 2, mb: 2, backgroundColor: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.18)', textAlign: 'left' }}>
+                    <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem', mb: 0.5 }}>
+                      📲 Abrimos o Instagram com sua arte copiada!
+                    </Typography>
+                    <Typography sx={{ color: 'rgba(255,255,255,0.82)', fontSize: '0.85rem' }}>
+                      No Instagram, toque em <b>“Adicionar figurinha”</b> (aparece no canto inferior) para colar sua arte e publique nos <b>Stories</b>. Se não abrir, toque em “Postar de novo”.
+                    </Typography>
+                  </Box>
+                )}
                 <Button fullWidth variant="contained" size="large" startIcon={<WhatsAppIcon />} onClick={scheduleWhatsApp}
                   sx={{ backgroundColor: '#25D366', '&:hover': { backgroundColor: '#1ea952' }, py: 1.7, fontSize: '1rem', fontWeight: 800 }}>
                   Agendar e resgatar meu prêmio
