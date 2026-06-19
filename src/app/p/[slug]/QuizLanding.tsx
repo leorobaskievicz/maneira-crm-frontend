@@ -42,6 +42,8 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
   const [sharing, setSharing] = useState(false);
   // Só libera o resgate do prêmio depois que a pessoa posta nos Stories
   const [shared, setShared] = useState(false);
+  // true quando o WhatsApp já havia participado (back devolve o 1º resultado)
+  const [repeated, setRepeated] = useState(false);
   const artUrlRef = useRef<string | null>(null);
 
   const bg = cfg.backgroundImage
@@ -78,6 +80,9 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
         answers: finalAnswers,
       });
       setResult(r.data.result);
+      // Quando o WhatsApp já participou, o back devolve o 1º resultado (anti-duplicação).
+      // Sinalizamos isso para não parecer que o placar "não muda".
+      setRepeated(!!r.data.repeat);
       setPhase('result');
     } catch {
       toast.error('Não foi possível enviar suas respostas. Tente novamente.');
@@ -265,6 +270,13 @@ export function QuizLanding({ campaign, slug }: { campaign: any; slug: string })
         {/* RESULTADO */}
         {phase === 'result' && result && (
           <Box sx={{ textAlign: 'center', py: 1 }}>
+            {repeated && (
+              <Box sx={{ mb: 2, px: 2, py: 1.25, borderRadius: '10px', backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)' }}>
+                <Typography sx={{ color: '#fff', fontSize: '0.82rem' }}>
+                  Você já participou com este WhatsApp — este é o <b>seu resultado</b> (vale 1 vez por número).
+                </Typography>
+              </Box>
+            )}
             <Box sx={{ fontSize: '3.2rem', lineHeight: 1, mb: 1 }}>{result.emoji || '🎉'}</Box>
             <Typography sx={{ color: 'rgba(255,255,255,0.65)', fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.12em', mb: 0.5 }}>
               {isScore ? (hasPrize ? 'Você ganhou!' : (result.noPrizeTitle || 'Resultado')) : (cfg.successTitle || 'Seu resultado')}
