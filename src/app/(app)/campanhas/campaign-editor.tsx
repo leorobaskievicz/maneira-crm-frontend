@@ -552,6 +552,12 @@ export function CampaignEditor({ open, onClose, campaign }: Props) {
                       <Typography variant="caption" sx={{ color: '#9A9A9A', display: 'block' }}>
                         Quem fizer menos acertos que a menor faixa não ganha prêmio (mostra a mensagem abaixo). Ex.: faixas em 6, 8 e 10 → 0–5 não ganha, 6–7 a 1ª, 8–9 a 2ª, 10 a 3ª.
                       </Typography>
+                      {tiers.length > 0 && Math.min(...tiers.map((t: any) => Number(t.minCorrect) || 0)) <= 0 && (
+                        <Alert severity="warning" sx={{ py: 0.5 }}>
+                          A menor faixa está em <b>0 acertos</b> — assim <b>todo mundo ganha</b>, mesmo errando tudo.
+                          Se você quer que o prêmio seja um desafio, suba o mínimo (ex.: “Acertos ≥ 3”).
+                        </Alert>
+                      )}
                       <TextField label="Título quando não ganha" fullWidth size="small" value={quiz.noPrizeTitle} onChange={e => setQuiz({ noPrizeTitle: e.target.value })} />
                       <TextField label="Mensagem quando não ganha" fullWidth size="small" multiline rows={2} value={quiz.noPrizeMessage} onChange={e => setQuiz({ noPrizeMessage: e.target.value })} />
                     </>
