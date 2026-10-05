@@ -33,6 +33,41 @@ function slicePath(startDeg: number, endDeg: number) {
   return `M ${C} ${C} L ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${R} ${R} 0 ${largeArc} 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)} Z`;
 }
 
+function wrapLabel(label: string, maxCharsPerLine: number): string[] {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return [''];
+
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const chunks: string[] = [];
+    for (let start = 0; start < word.length; start += maxCharsPerLine) {
+      chunks.push(word.slice(start, start + maxCharsPerLine));
+    }
+
+    chunks.forEach((chunk, chunkIndex) => {
+      const candidate = currentLine ? `${currentLine} ${chunk}` : chunk;
+
+      if (currentLine && candidate.length > maxCharsPerLine) {
+        lines.push(currentLine);
+        currentLine = chunk;
+      } else {
+        currentLine = candidate;
+      }
+
+      // Palavras muito longas também são quebradas, sem voltar ao reticências.
+      if (chunkIndex < chunks.length - 1) {
+        lines.push(currentLine);
+        currentLine = '';
+      }
+    });
+  }
+
+  if (currentLine) lines.push(currentLine);
+  return lines;
+}
+
 function textColorFor(bg: string): string {
   const h = bg.replace('#', '');
   if (h.length < 6) return '#fff';
@@ -83,18 +118,30 @@ export function PrizeWheel({ slots, targetIndex, spinDurationMs = 5000, onSpinEn
             const end = (i + 1) * seg;
             const mid = start + seg / 2;
             const lp = polar(mid, LABEL_R);
-            const label = slot.label?.length > 16 ? slot.label.slice(0, 15) + '…' : slot.label;
+            const labelFontSize = Math.max(6.5, Math.min(8.5, 10 - n * 0.375));
+            const halfSegment = Math.min(Math.PI / 2 - 0.01, (seg * Math.PI / 180) / 2);
+            const availableWidth = Math.min(2 * LABEL_R, 2 * LABEL_R * Math.tan(halfSegment)) * 0.72;
+            const maxCharsPerLine = Math.max(4, Math.floor(availableWidth / (labelFontSize * 0.57)));
+            const lines = wrapLabel(slot.label || '', maxCharsPerLine);
+            const lineHeight = labelFontSize * 1.15;
+            const firstLineDy = -((lines.length - 1) * lineHeight) / 2;
+            // Evita que os textos das fatias inferiores fiquem de cabeça para baixo.
+            const labelRotation = mid > 90 && mid < 270 ? mid + 180 : mid;
             return (
               <g key={i}>
                 <path d={slicePath(start, end)} fill={slot.color || '#A0585A'} stroke="rgba(255,255,255,0.35)" strokeWidth="1.5" />
                 <text
                   x={lp.x} y={lp.y}
-                  transform={`rotate(${mid} ${lp.x} ${lp.y})`}
+                  transform={`rotate(${labelRotation} ${lp.x} ${lp.y})`}
                   fill={textColorFor(slot.color || '#A0585A')}
-                  fontSize="8.5" fontWeight="700" textAnchor="middle" dominantBaseline="middle"
+                  fontSize={labelFontSize} fontWeight="700" textAnchor="middle" dominantBaseline="middle"
                   style={{ fontFamily: 'Inter, sans-serif', pointerEvents: 'none' }}
                 >
-                  {label}
+                  {lines.map((line, lineIndex) => (
+                    <tspan key={`${line}-${lineIndex}`} x={lp.x} dy={lineIndex === 0 ? firstLineDy : lineHeight}>
+                      {line}
+                    </tspan>
+                  ))}
                 </text>
               </g>
             );
